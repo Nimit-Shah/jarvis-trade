@@ -79,7 +79,6 @@ from src.market_data import (
     DEFAULT_MAX_ROWS,
     cap_rows,
     detect_source,
-    fetch_market_data_json,
     get_loader,
 )
 
@@ -352,19 +351,29 @@ def _get_goal_store():
 _mcp_session_id: str | None = None
 
 
-def _resolve_session_id(session_id: str = "") -> str:
-    """Resolve the goal session, defaulting to this server process's session.
+def _resolve_session_id(session_id: str = "", ctx: Context | None = None) -> str:
+    """Resolve the goal session: explicit id, then per-connection id, then
+    one id per server process.
 
     The in-process tool registry injects the host session and keeps
     ``session_id`` out of its required schema. MCP has no such injection point,
     so these tools used to mark the id required — asking the model to invent an
     internal identifier it has no way to know, the opposite contract from the
-    local path (#885). Default instead to one stable id per server process,
-    which is the closest MCP equivalent of a host-owned session, while still
-    honouring an explicit id from a client that tracks its own conversations.
+    local path (#885). Default instead to a session id, while still honouring
+    an explicit id from a client that tracks its own conversations.
+
+    A single server process can serve many concurrent MCP connections (the
+    http/sse transports this file documents), so the process-wide fallback on
+    its own would collapse every such caller onto one goal session. ``ctx``,
+    when available, carries FastMCP's own per-connection session id (the real
+    ``mcp-session-id`` header for StreamableHTTP, a cached id for the other
+    transports) and takes precedence over the process fallback for exactly
+    that reason.
 
     Args:
         session_id: Optional client-supplied session id.
+        ctx: Optional MCP request context; supplies a per-connection id when
+            the tool is invoked through a live MCP request.
 
     Returns:
         A non-empty session id.
@@ -372,6 +381,11 @@ def _resolve_session_id(session_id: str = "") -> str:
     global _mcp_session_id
     if cleaned := session_id.strip():
         return cleaned
+    if ctx is not None:
+        try:
+            return ctx.session_id
+        except RuntimeError:
+            pass
     if _mcp_session_id is None:
         import uuid
 
@@ -548,6 +562,7 @@ def start_research_goal(
     token_budget: int | None = None,
     turn_budget: int | None = None,
     time_budget_seconds: int | None = None,
+    ctx: Context | None = None,
 ) -> str:
     """Create or replace the current finance research goal for a session.
 
@@ -570,7 +585,7 @@ def start_research_goal(
     try:
         clean_criteria = _clean_list(criteria) or _default_goal_criteria()
         goal = _get_goal_store().replace_goal(
-            session_id=_resolve_session_id(session_id),
+            session_id=_resolve_session_id(session_id, ctx),
             objective=objective,
             criteria=clean_criteria,
             ui_summary=ui_summary,
@@ -588,7 +603,7 @@ def start_research_goal(
 
 
 @mcp.tool
-def get_research_goal(session_id: str = "") -> str:
+def get_research_goal(session_id: str = "", ctx: Context | None = None) -> str:
     """Return the current finance research goal snapshot for a session.
 
     Args:
@@ -596,7 +611,7 @@ def get_research_goal(session_id: str = "") -> str:
             its own sessions; this server then uses one id per process.
     """
     try:
-        snapshot = _get_goal_store().get_current_snapshot(_resolve_session_id(session_id))
+        snapshot = _get_goal_store().get_current_snapshot(_resolve_session_id(session_id, ctx))
     except ValueError as exc:
         return _json_error(str(exc), error_type="validation")
     if snapshot is None:
@@ -629,6 +644,7 @@ def add_goal_evidence(
     confidence: str | None = None,
     caveat: str | None = None,
     contradicts_claim_ids: _lenient_str_list_opt = None,
+    ctx: Context | None = None,
 ) -> str:
     """Append traceable evidence to a finance research goal.
 
@@ -662,7 +678,7 @@ def add_goal_evidence(
         from src.goal import EvidenceInput, StaleGoalError
 
         evidence = _get_goal_store().append_evidence(
-            session_id=_resolve_session_id(session_id),
+            session_id=_resolve_session_id(session_id, ctx),
             goal_id=goal_id.strip(),
             expected_goal_id=expected_goal_id.strip(),
             evidence=EvidenceInput(
@@ -708,6 +724,7 @@ def update_research_goal_status(
     session_id: str = "",
     audit: _lenient_dict_list_opt = None,
     recap: str | None = None,
+    ctx: Context | None = None,
 ) -> str:
     """Update a finance research goal status after an audit.
 
@@ -728,7 +745,7 @@ def update_research_goal_status(
         from src.goal import GoalStatus, StaleGoalError
 
         updated = _get_goal_store().update_status(
-            session_id=_resolve_session_id(session_id),
+            session_id=_resolve_session_id(session_id, ctx),
             goal_id=goal_id.strip(),
             expected_goal_id=expected_goal_id.strip(),
             status=GoalStatus(status),
@@ -1747,15 +1764,22 @@ def get_market_data(
     of the returned rows ("lots" / "shares"; null = source undeclared) — read
     it before interpreting or comparing volume values across symbols/sources.
     """
-    return fetch_market_data_json(
-        codes=codes,
-        start_date=start_date,
-        end_date=end_date,
-        source=source,
-        interval=interval,
-        max_rows=max_rows,
-        loader_resolver=_get_loader,
-        include_provenance=True,
+    registry = _get_registry()
+    return registry.execute(
+        "get_market_data",
+        {
+            "codes": codes,
+            "start_date": start_date,
+            "end_date": end_date,
+            "source": source,
+            "interval": interval,
+            "max_rows": max_rows,
+            # Internal hook, not an agent-facing parameter: keeps the MCP
+            # surface resolving loaders through mcp_server._get_loader (the
+            # contract the regression tests and the server's own loader
+            # diagnostics rely on) instead of the tool's default resolver.
+            "loader_resolver": _get_loader,
+        },
     )
 
 
@@ -1981,7 +2005,12 @@ def get_sector_info(code: str | None = None, mode: str = "membership", limit: in
 
 
 @mcp.tool
-def get_research_reports(code: str, limit: int = 20) -> str:
+def get_research_reports(
+    code: str,
+    limit: int = 20,
+    beginTime: str | None = None,
+    endTime: str | None = None,
+) -> str:
     """Fetch mainland A-share sell-side research coverage and consensus forecasts.
 
     Returns recent broker research reports (title, brokerage, analyst, publish
@@ -1992,9 +2021,18 @@ def get_research_reports(code: str, limit: int = 20) -> str:
     Args:
         code: A-share symbol in <code>.<exchange> form (SH/SZ/BJ).
         limit: Maximum number of most-recent research reports to return.
+        beginTime: Earliest report publish date (inclusive), 'YYYYMMDD'.
+            Optional; defaults to the start of a trailing two-year window.
+        endTime: Latest report publish date (inclusive), 'YYYYMMDD'.
+            Optional; defaults to today.
     """
+    params: dict[str, Any] = {"code": code, "limit": limit}
+    if beginTime:
+        params["beginTime"] = beginTime
+    if endTime:
+        params["endTime"] = endTime
     registry = _get_registry()
-    return registry.execute("get_research_reports", {"code": code, "limit": limit})
+    return registry.execute("get_research_reports", params)
 
 
 @mcp.tool
@@ -2684,7 +2722,7 @@ def reap_stale_runs() -> str:
 
 
 @mcp.tool
-def retry_run(run_id: str) -> str:
+def retry_run(run_id: str, resume: bool = False) -> str:
     """Retry a failed, stale, or cancelled swarm run.
 
     Re-launches a brand-new run with the same preset and variables as the
@@ -2692,8 +2730,17 @@ def retry_run(run_id: str) -> str:
     spotting a ``failed`` or stale run via ``list_runs``. A still-``running``
     run cannot be retried — cancel or reap it first.
 
+    With ``resume=True`` (replay), completed upstream tasks and their artifacts
+    are carried into the new run as-is and only the failed/cancelled subgraph
+    re-executes — completed independent branches are not re-run. ``resume``
+    only applies to a ``failed`` or ``cancelled`` run; ``resume=True`` for any
+    other status is refused with an error (a plain retry without ``resume``
+    remains available for any non-running run).
+
     Args:
         run_id: ID of the run to retry (from ``list_runs`` / ``get_swarm_status``).
+        resume: Replay the failed/cancelled subgraph instead of re-running the
+            whole preset. Default ``False`` preserves the existing full re-run.
 
     Returns:
         JSON payload for the newly created run (``run_id`` / ``status`` /
@@ -2719,6 +2766,17 @@ def retry_run(run_id: str) -> str:
             {"status": "error", "error": "Cannot retry a running run. Cancel or reap it first."},
             ensure_ascii=False,
         )
+    if resume and reconciled.status not in (RunStatus.failed, RunStatus.cancelled):
+        return json.dumps(
+            {
+                "status": "error",
+                "error": (
+                    f"Cannot resume a run in status '{reconciled.status.value}'; "
+                    "resume only applies to failed or cancelled runs."
+                ),
+            },
+            ensure_ascii=False,
+        )
 
     agent_config = load_swarm_agent_config()
     runtime = SwarmRuntime(store=store, agent_config=agent_config)
@@ -2727,6 +2785,7 @@ def retry_run(run_id: str) -> str:
             reconciled.preset_name,
             reconciled.user_vars or {},
             include_shell_tools=_include_shell_tools,
+            resume_from=reconciled if resume else None,
         )
     except FileNotFoundError as exc:
         return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False)

@@ -62,6 +62,187 @@ export interface CorrelationRegimeResponse {
   };
 }
 
+export interface PortfolioPosition {
+  source_id?: string;
+  profile_id?: string;
+  source_label?: string;
+  broker: string;
+  symbol: string;
+  name: string;
+  asset_type: string;
+  market: string;
+  currency: string;
+  quantity: number;
+  cost_price?: number | null;
+  market_price?: number | null;
+  market_value_usd: number;
+  market_value_cny: number;
+  unrealized_pnl_usd?: number | null;
+  priced: boolean;
+  updated_at: string;
+  pricing_basis?: string;
+  price_error?: string;
+}
+
+/**
+ * One portfolio source as of the last refresh.
+ *
+ * A source that could not be read has `status === "error"`, no totals, and
+ * contributes nothing to the snapshot totals; `last_success_at` (when present)
+ * is the timestamp of the last read that did succeed, and is only ever shown
+ * as history — never as a current valuation.
+ */
+export interface PortfolioAccount {
+  source_id?: string;
+  profile_id?: string;
+  label?: string;
+  broker: string;
+  status: "ok" | "error";
+  last_success_at?: string;
+  total_usd?: number | null;
+  total_cny?: number | null;
+  priced_value_usd?: number;
+  cash_usd?: number;
+  unpriced_or_other_usd?: number;
+  position_count?: number;
+  priced_position_count?: number;
+  unpriced_position_count?: number;
+  error_code?: string;
+  error?: string;
+  auth?: {
+    method: string;
+    renewal: "automatic" | "session" | "provider_managed";
+    readonly: boolean;
+    detail: string;
+  };
+}
+
+export interface PortfolioSnapshot {
+  snapshot_id: string;
+  created_at: string;
+  /** False whenever any enabled source did not reach `status === "ok"`. */
+  complete: boolean;
+  display_currency?: "USD" | "CNY";
+  totals: { usd: number; cny: number };
+  valuation?: {
+    priced_usd: number;
+    cash_usd: number;
+    unpriced_or_other_usd: number;
+    identified_coverage: number;
+  };
+  fx: { usd_cny: number; usd_hkd: number; fetched_at: string; stale: boolean };
+  accounts: PortfolioAccount[];
+  positions: PortfolioPosition[];
+  combined_holdings?: Array<{
+    symbol: string;
+    market_value_usd: number;
+    asset_type?: string;
+    brokers?: string[];
+    unrealized_pnl_usd?: number;
+  }>;
+  /** Backend-authored English notes; rendered verbatim, not translated. */
+  warnings: string[];
+}
+
+export interface PortfolioHistoryPoint {
+  id: string;
+  created_at: string;
+  complete: number;
+  total_usd: string;
+  total_cny: string;
+}
+
+export interface PortfolioRefreshState {
+  running: boolean;
+  current: string | null;
+  sources?: Record<string, { status: "idle" | "pending" | "refreshing" | "ok" | "error"; error?: string | null }>;
+  brokers?: Record<string, { status: "idle" | "pending" | "refreshing" | "ok" | "error"; error?: string | null }>;
+}
+
+export interface PortfolioSourceSettings {
+  connection_id: string;
+  label: string;
+  enabled: boolean;
+  order: number;
+  include_cash: boolean;
+}
+
+export interface PortfolioSettings {
+  display_currency: "USD" | "CNY";
+  sources: PortfolioSourceSettings[];
+}
+
+export interface PortfolioSourceCatalogItem {
+  id: string;
+  connection_id: string;
+  profile_id: string;
+  connector: string;
+  label: string;
+  environment: "paper" | "live";
+  transport: "local_tws" | "remote_mcp" | "broker_sdk" | "local_plugin";
+  capabilities: string[];
+  readonly: boolean;
+  notes: string;
+  selected: boolean;
+  source_id?: string | null;
+  supports_reconnect: boolean;
+  credential_fields: CredentialField[];
+  credential_status: Record<string, boolean>;
+  credentials_configured: boolean;
+}
+
+export interface CredentialField {
+  name: string;
+  label: string;
+  secret: boolean;
+  required: boolean;
+}
+
+export interface LocalConnection {
+  id: string;
+  profile_id: string;
+  label: string;
+  connector: string;
+  environment: "paper" | "live";
+  transport: "local_tws" | "remote_mcp" | "broker_sdk" | "local_plugin";
+  readonly: boolean;
+  capabilities: string[];
+  supports_reconnect: boolean;
+  credential_fields: CredentialField[];
+  credential_status: Record<string, boolean>;
+  credentials_configured: boolean;
+}
+
+export interface ReadonlyConnectionProfile {
+  id: string;
+  connector: string;
+  label: string;
+  environment: "paper" | "live";
+  transport: "local_tws" | "remote_mcp" | "broker_sdk" | "local_plugin";
+  capabilities: string[];
+  readonly: boolean;
+  notes: string;
+  local_plugin: boolean;
+  credential_fields: CredentialField[];
+  supports_reconnect: boolean;
+  invalid_plugin?: boolean;
+  directory?: string;
+  error?: string;
+}
+
+export interface ConnectionsResponse {
+  status: string;
+  connections: LocalConnection[];
+  profiles: ReadonlyConnectionProfile[];
+  plugin_directory: string;
+}
+
+export interface PortfolioSettingsResponse {
+  status: string;
+  settings: PortfolioSettings;
+  catalog: PortfolioSourceCatalogItem[];
+}
+
 async function errorFromResponse(res: Response): Promise<ApiError> {
   let detail = `HTTP ${res.status}`;
   try {
@@ -137,6 +318,45 @@ export const api = {
     request<CorrelationRegimeResponse>(
       `/correlation/regime?codes=${encodeURIComponent(codes)}&days=${encodeURIComponent(String(days))}`,
     ),
+  getPortfolio: () => request<{ status: string; snapshot: PortfolioSnapshot | null }>("/api/portfolio"),
+  refreshPortfolio: () => request<{ status: string; snapshot: PortfolioSnapshot }>("/api/portfolio/refresh", { method: "POST" }),
+  getPortfolioRefreshStatus: () => request<{ status: string; refresh: PortfolioRefreshState }>("/api/portfolio/refresh-status"),
+  reconnectPortfolioSource: (sourceId: string) =>
+    request<{ status: string; authorized: boolean }>(`/api/portfolio/sources/${encodeURIComponent(sourceId)}/reconnect`, { method: "POST" }),
+  getPortfolioSettings: () => request<PortfolioSettingsResponse>("/api/portfolio/settings"),
+  updatePortfolioSettings: (settings: PortfolioSettings) =>
+    request<PortfolioSettingsResponse>("/api/portfolio/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
+  getConnections: () => request<ConnectionsResponse>("/api/connections"),
+  createConnection: (payload: { id: string; profile_id: string; label: string }) =>
+    request<{ status: string; connection: LocalConnection }>("/api/connections", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  saveConnectionCredentials: (connectionId: string, values: Record<string, string>) =>
+    request<{ status: string; credential_status: Record<string, boolean> }>(
+      `/api/connections/${encodeURIComponent(connectionId)}/credentials`,
+      { method: "POST", body: JSON.stringify({ values }) },
+    ),
+  checkConnection: (connectionId: string) =>
+    request<{ status: string; connection_id: string; report: Record<string, unknown> }>(
+      `/api/connections/${encodeURIComponent(connectionId)}/check`,
+      { method: "POST" },
+    ),
+  deleteConnection: (connectionId: string) =>
+    request<{ status: string; deleted: string }>(
+      `/api/connections/${encodeURIComponent(connectionId)}`,
+      { method: "DELETE" },
+    ),
+  getPortfolioHistory: (limit = 180) =>
+    request<{ status: string; history: PortfolioHistoryPoint[] }>(`/api/portfolio/history?limit=${encodeURIComponent(String(limit))}`),
+  downloadPortfolioCsv: async () => {
+    const response = await fetch(`${BASE}/api/portfolio/export.csv`, { headers: authHeaders() });
+    if (!response.ok) throw await errorFromResponse(response);
+    return response.blob();
+  },
   listRuns: (limit?: number) => request<RunListItem[]>(`/runs${limit ? `?limit=${encodeURIComponent(String(limit))}` : ""}`),
   getRun: (id: string, params: RunDetailParams = {}) => {
     const q = new URLSearchParams();
@@ -163,6 +383,16 @@ export const api = {
     request<ScheduledRun>("/scheduled-runs", { method: "POST", body: JSON.stringify(body) }),
   deleteScheduledRun: (id: string) =>
     request<void>(`/scheduled-runs/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  commitScheduledResearchProposal: (proposalId: string) =>
+    request<ScheduledResearchProposal>(
+      `/scheduled-runs/proposals/${encodeURIComponent(proposalId)}/commit`,
+      { method: "POST" },
+    ),
+  discardScheduledResearchProposal: (proposalId: string) =>
+    request<ScheduledResearchProposal>(
+      `/scheduled-runs/proposals/${encodeURIComponent(proposalId)}/discard`,
+      { method: "POST" },
+    ),
   sendMessage: (sid: string, content: string) => request<{ message_id: string; attempt_id: string }>(`/sessions/${sid}/messages`, { method: "POST", body: JSON.stringify({ content }) }),
   cancelSession: (sid: string) => request<{ status: string }>(`/sessions/${sid}/cancel`, { method: "POST" }),
   getSessionMessages: (sid: string) => request<MessageItem[]>(`/sessions/${sid}/messages`),
@@ -319,9 +549,28 @@ export const api = {
 
 // --- Scheduled research types ---
 
+export interface VerdictItem {
+  symbol: string;
+  state: string;
+  reason: string;
+}
+
+export interface VerdictRecord {
+  session_id: string;
+  recorded_at: number;
+  parse: string;
+  outcome: string;
+  items: VerdictItem[];
+  previous: VerdictRecord | null;
+}
+
 export interface ScheduledRun {
   id: string;
   prompt: string;
+  title: string;
+  source_type: "prompt" | "playbook";
+  playbook_slug: string | null;
+  end_at: number | null;
   schedule: string;
   next_run_at: number;
   status: string;
@@ -336,19 +585,59 @@ export interface ScheduledRun {
   // app, which is what every monitor created before this did.
   delivery_channel: string | null;
   delivery_target: string | null;
+  delivery_target_ref: string | null;
+  delivery_target_label: string | null;
   delivery_status: string;
   delivery_error: string | null;
   delivery_updated_at: number | null;
+  delivery_attempts: number;
+  delivery_provider_message_id: string | null;
+  // The latest run's parsed verdict, embedded with its predecessor so the list
+  // renders a delta in one query. Null until a completed run records one.
+  last_verdict: VerdictRecord | null;
 }
 
 export interface CreateScheduledRunRequest {
   id?: string;
+  title?: string | null;
   prompt: string;
   schedule: string;
   timezone?: string | null;
+  end_at?: number | null;
   config?: Record<string, unknown>;
   delivery_channel?: string | null;
   delivery_target?: string | null;
+  delivery_target_ref?: string | null;
+}
+
+export interface ScheduledResearchProposalJob {
+  id: string;
+  title: string;
+  state: string;
+  source: { kind: string; playbook_slug?: string | null; prompt?: string | null };
+  schedule: {
+    expression: string;
+    timezone: string | null;
+    next_run_at: number | null;
+    end_at: number | null;
+  };
+  delivery: {
+    channel: string | null;
+    target_ref: string | null;
+    target_label: string | null;
+    status: string;
+  };
+}
+
+export interface ScheduledResearchProposal {
+  type: "scheduled_research.proposal";
+  proposal_id: string;
+  operation: "create" | "cancel";
+  status: "pending" | "committed" | "discarded" | "expired";
+  expires_at: number;
+  job: ScheduledResearchProposalJob;
+  job_id?: string | null;
+  committed_job_id?: string | null;
 }
 
 // --- Swarm types ---

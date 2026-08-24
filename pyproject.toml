@@ -144,7 +144,7 @@ stats = [
     # cointegration, Granger causality, Ljung-Box, VIF and GARCH. Those
     # functions lazy-import and raise an actionable ImportError naming this
     # extra, so the base install stays lean and nothing silently degrades.
-    "statsmodels>=0.14",
+    "statsmodels>=0.14.6",
     "arch>=6.0",
 ]
 ashare = [

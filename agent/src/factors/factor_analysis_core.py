@@ -5,7 +5,9 @@ import pandas as pd
 _MIN_VALID_PER_DATE = 5
 
 
-def compute_ic_series(factor_df: pd.DataFrame, return_df: pd.DataFrame) -> pd.Series:
+def compute_ic_series(
+    factor_df: pd.DataFrame, return_df: pd.DataFrame, min_valid: int | None = None
+) -> pd.Series:
     """Compute daily Spearman rank correlation (IC) between factor values and returns.
 
     Vectorised via ``rank().corrwith()`` (Spearman = Pearson on ranks). A date
@@ -19,6 +21,14 @@ def compute_ic_series(factor_df: pd.DataFrame, return_df: pd.DataFrame) -> pd.Se
     Returns:
         IC series indexed by date.
     """
+    # Small-universe support: for 7 names, 5 is 71% coverage; relax to ~60% for tiny universes.
+    effective_min = _MIN_VALID_PER_DATE if min_valid is None else min_valid
+    if min_valid is None:
+        n_codes = len(factor_df.columns)
+        if n_codes < 10:
+            # e.g. 7 → 4, 5 → 3, 3 → 2
+            effective_min = max(2, min(_MIN_VALID_PER_DATE, (n_codes * 2) // 3 + 1))
+
     common_dates = factor_df.index.intersection(return_df.index)
     common_codes = factor_df.columns.intersection(return_df.columns)
     if len(common_dates) == 0 or len(common_codes) == 0:
@@ -40,7 +50,7 @@ def compute_ic_series(factor_df: pd.DataFrame, return_df: pd.DataFrame) -> pd.Se
     return_ranks = return_aligned.rank(axis=1, method="average")
     ic = factor_ranks.corrwith(return_ranks, axis=1, method="pearson")
 
-    ic = ic[n_valid >= _MIN_VALID_PER_DATE]
+    ic = ic[n_valid >= effective_min]
     ic = ic.dropna()
     if ic.empty:
         return pd.Series(dtype=float)

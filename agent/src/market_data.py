@@ -17,12 +17,13 @@ DEFAULT_MAX_ROWS = 250
 # fallback chain (registry.FALLBACK_CHAINS), so an unavailable preferred source
 # still degrades gracefully to the rest of the chain. US equities route to the
 # throttle-tolerant Yahoo public endpoint first (lower IP-ban risk than the
-# yfinance SDK), A-shares and HK equities to the never-banned Tencent endpoint.
+# yfinance SDK).
+# China-free: A-share (SZ/SH/BJ) and HK patterns intentionally removed — those
+# symbols fall through to the default and resolve to `_unresolved` without
+# hitting web.ifzq.gtimg.cn.
 _SOURCE_PATTERNS = [
     (re.compile(r"^local:", re.I), "local"),
-    (re.compile(r"^\d{6}\.(SZ|SH|BJ)$", re.I), "tencent"),
     (re.compile(r"^[A-Z]+\.US$", re.I), "yahoo"),
-    (re.compile(r"^\d{3,5}\.HK$", re.I), "tencent"),
     # India: NSE (RELIANCE.NS) / BSE (500325.BO). Tickers may carry '&' and '-'
     # (e.g. M&M.NS, BAJAJ-AUTO.NS). Served by Yahoo's public chart endpoint.
     (re.compile(r"^[A-Z0-9&.\-]+\.(NS|BO)$", re.I), "yahoo"),
@@ -30,8 +31,10 @@ _SOURCE_PATTERNS = [
     (re.compile(r"^[A-Z0-9&.\-]+\.(TO|V)$", re.I), "yahoo"),
     # Yahoo futures (GC=F, CL=F) and forex (EURUSD=X) suffix conventions —
     # served verbatim by Yahoo's public chart endpoint (#718). Without these,
-    # such symbols fell through to the ``tushare`` default and were routed to
+    # such symbols fell through to the default and were routed to
     # China-market loaders that cannot resolve them.
+    # China-free: unmatched symbols now resolve to `_unresolved` via empty
+    # fallback chains (no network to China).
     (re.compile(r"^[A-Z0-9]+=F$", re.I), "yahoo"),
     (re.compile(r"^[A-Z]+=X$", re.I), "yahoo"),
     # Korea: KOSPI (005930.KS) / KOSDAQ (247540.KQ), 6-digit codes. Served by
@@ -40,7 +43,7 @@ _SOURCE_PATTERNS = [
     (re.compile(r"^[A-Z]+-USDT$", re.I), "okx"),
     (re.compile(r"^[A-Z]+/USDT$", re.I), "ccxt"),
     # Forex pairs and metals (EUR/USD, XAU/USD, EURUSD.FX). mt5 is the head of
-    # the forex chain and degrades to akshare/yfinance via the registry when no
+    # the forex chain and degrades to yfinance via the registry when no
     # local MT5 terminal is attached. The 3-letter quote cannot collide with
     # the 4-letter /USDT crypto rule above.
     (re.compile(r"^[A-Z]{3}/[A-Z]{3}$", re.I), "mt5"),
@@ -53,7 +56,10 @@ def detect_source(code: str) -> str:
     for pattern, source in _SOURCE_PATTERNS:
         if pattern.match(code):
             return source
-    return "tushare"
+    # China-free: legacy default removed — now intentionally unresolved;
+    # not in VALID_SOURCES/LOADER_REGISTRY, so fetch_market_data records
+    # `_unresolved` without hitting web.ifzq.gtimg.cn.
+    return "_unresolved"
 
 
 def get_loader(source: str):

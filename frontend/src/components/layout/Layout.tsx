@@ -105,22 +105,22 @@ export function Layout() {
       </a>
       {/* Sidebar */}
       <aside
-        aria-label={t('layout.sidebar', { defaultValue: 'Vibe-Trading sidebar' })}
+        aria-label={t('layout.sidebar', { defaultValue: 'Jarvis-Trade sidebar' })}
         className={cn(
-          "max-md:w-12 border-e border-border/60 bg-card flex flex-col shrink-0 transition-all duration-200 overflow-visible",
+          "max-md:w-12 border-e border-sidebar-border bg-sidebar flex flex-col shrink-0 transition-all duration-200 overflow-visible",
           collapsed ? "w-12" : "w-64"
         )}
       >
         {/* Brand */}
-        <div className={cn("border-b border-border/60", collapsed ? "p-2 flex justify-center" : "p-4 max-md:p-2 max-md:flex max-md:justify-center")}>
+        <div className={cn("border-b border-sidebar-border", collapsed ? "p-2 flex justify-center" : "p-4 max-md:p-2 max-md:flex max-md:justify-center")}>
           <Link
             to="/"
-            aria-label="Vibe-Trading"
+            aria-label="Jarvis-Trade"
             className={cn("flex items-center", collapsed ? "justify-center" : "gap-2 max-md:justify-center")}
           >
             <BrandMark className="h-6 w-6 shrink-0" />
             {!collapsed && (
-              <span className="text-[15px] font-semibold tracking-tight max-md:hidden">Vibe-Trading</span>
+              <span className="text-[15px] font-semibold tracking-tight max-md:hidden">Jarvis-Trade</span>
             )}
           </Link>
         </div>
@@ -141,8 +141,8 @@ export function Layout() {
                   "flex items-center rounded-md text-[13px] transition-colors",
                   collapsed ? "justify-center px-2 py-1.5" : "gap-3 px-3 py-1.5 max-md:justify-center max-md:px-2",
                   (to === "/" ? pathname === "/" || pathname.startsWith("/agent") : pathname.startsWith(to))
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    ? "bg-sidebar-accent/15 text-sidebar-primary font-medium"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/8 hover:text-sidebar-foreground"
                 )}
                 title={collapsed ? text : undefined}
               >
@@ -155,9 +155,9 @@ export function Layout() {
 
         {/* Sessions — hidden when collapsed */}
         {!collapsed && (
-          <div className="flex-1 overflow-auto border-t border-border/60 mt-2 flex flex-col max-md:hidden">
+          <div className="flex-1 overflow-auto border-t border-sidebar-border mt-2 flex flex-col max-md:hidden">
             <div className="flex items-center justify-between px-4 py-2">
-              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-sidebar-foreground/70">
                 <MessageSquare className="h-3.5 w-3.5" />
                 {t('layout.sessions')}
               </span>
@@ -200,23 +200,23 @@ export function Layout() {
                     ) : (
                       <Link
                         to={`/agent?session=${s.session_id}`}
-                        className={cn(
-                          "flex-1 min-w-0 ps-3 pe-14 py-1.5 rounded-md text-xs transition-colors truncate block border-s-2",
-                          isActive
-                            ? "border-s-primary bg-primary/10 text-primary font-medium"
-                            : "border-s-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-                        )}
+                className={cn(
+                  "flex-1 min-w-0 ps-3 pe-14 py-1.5 rounded-md text-xs transition-colors truncate block border-s-2",
+                  isActive
+                    ? "border-s-sidebar-primary bg-sidebar-accent/15 text-sidebar-primary font-medium"
+                    : "border-s-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/8 hover:text-sidebar-foreground"
+                )}
                         title={s.title || s.session_id}
                       >
                         <span className="flex min-w-0 items-center gap-1.5">
                           {streamingSessionId === s.session_id ? (
-                            <Loader2 className="h-3 w-3 shrink-0 animate-spin text-primary" />
+                            <Loader2 className="h-3 w-3 shrink-0 animate-spin text-sidebar-primary" />
                           ) : (
                             // Transparent placeholder keeps titles aligned with
                             // spinner rows without a meaningless gray dot.
                             <span className={cn(
                               "h-1.5 w-1.5 rounded-full shrink-0",
-                              isActive ? "bg-primary/70" : "bg-transparent"
+                              isActive ? "bg-sidebar-primary/70" : "bg-transparent"
                             )} />
                           )}
                           <span className="min-w-0 truncate">{s.title || s.session_id.slice(0, 16)}</span>
@@ -257,13 +257,13 @@ export function Layout() {
         {collapsed && <div className="flex-1" />}
 
         {/* Footer */}
-        <div className={cn("mt-auto border-t border-border/60", collapsed ? "p-1 flex flex-col items-center gap-1" : "p-3 space-y-2 max-md:p-1 max-md:flex max-md:flex-col max-md:items-center max-md:gap-1 max-md:space-y-0")}>
+        <div className={cn("mt-auto border-t border-sidebar-border", collapsed ? "p-1 flex flex-col items-center gap-1" : "p-3 space-y-2 max-md:p-1 max-md:flex max-md:flex-col max-md:items-center max-md:gap-1 max-md:space-y-0")}>
           {collapsed ? (
             <>
-              <button onClick={toggle} className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors" title={dark ? t('layout.light') : t('layout.dark')}>
+              <button onClick={toggle} className="p-1.5 text-sidebar-foreground/60 hover:text-sidebar-foreground rounded transition-colors" title={dark ? t('layout.light') : t('layout.dark')}>
                 {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
               </button>
-              <button onClick={() => setCollapsed(false)} className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors" title={t('layout.expand')}>
+              <button onClick={() => setCollapsed(false)} className="p-1.5 text-sidebar-foreground/60 hover:text-sidebar-foreground rounded transition-colors" title={t('layout.expand')}>
                 <ChevronsRight className="h-3.5 w-3.5" />
               </button>
             </>
@@ -272,7 +272,7 @@ export function Layout() {
               <div className="flex items-center justify-between max-md:flex-col">
                 <button
                   onClick={toggle}
-                  className="flex items-center gap-1.5 p-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 p-1.5 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
                 >
                   {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
                   <span className="max-md:hidden">{dark ? t('layout.light') : t('layout.dark')}</span>
@@ -280,7 +280,7 @@ export function Layout() {
                 <div className="flex items-center gap-1 max-md:hidden">
                   <button
                     onClick={() => setCollapsed(true)}
-                    className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
+                    className="p-1.5 text-sidebar-foreground/60 hover:text-sidebar-foreground rounded transition-colors"
                     title={t('layout.collapse')}
                   >
                     <ChevronsLeft className="h-3.5 w-3.5" />
@@ -291,10 +291,10 @@ export function Layout() {
                 <LanguageSwitcher />
                 {/* About is marketing, not a work surface — it lives here by
                     the version stamp instead of in the primary nav. */}
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 max-md:hidden">
+                <div className="flex items-center gap-1.5 text-[10px] text-sidebar-foreground/40 max-md:hidden">
                   <span>{t('app.version')}</span>
                   <span aria-hidden="true">·</span>
-                  <Link to="/about" className="transition-colors hover:text-foreground">
+                  <Link to="/about" className="transition-colors hover:text-sidebar-foreground">
                     {t('layout.about')}
                   </Link>
                 </div>
@@ -410,7 +410,7 @@ function LanguageSwitcher() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={t("layout.language")}
-        className="flex items-center gap-1 p-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors max-md:justify-center"
+        className="flex items-center gap-1 p-1.5 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors max-md:justify-center"
       >
         <Languages className="h-3.5 w-3.5 shrink-0" />
         <span className="whitespace-nowrap max-md:hidden">{current.label}</span>

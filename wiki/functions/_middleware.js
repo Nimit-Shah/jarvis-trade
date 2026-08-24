@@ -1,4 +1,4 @@
-// In-path traffic classifier for vibetrading.wiki (Cloudflare Pages Function).
+// In-path traffic classifier for jarvistrade.wiki (Cloudflare Pages Function).
 //
 // Runs on every request, server-side, and counts each HTML page load as
 // "agent" (AI crawler / agent tool), "bot" (generic SEO/monitor crawler), or

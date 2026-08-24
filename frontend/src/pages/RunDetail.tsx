@@ -796,10 +796,16 @@ function ChartTab({
   const progressPercent = bulkProgress.total > 0 ? Math.round((bulkProgress.done / bulkProgress.total) * 100) : 0;
 
   if (chartSymbols.length === 0 && entries.length === 0 && !hasEquity) {
+    const isChinaFree = run.chart_symbols?.some((s) => /\.(SH|SZ|BJ|HK)$/i.test(s));
     return (
       <div className="p-8 text-center text-muted-foreground space-y-2">
         <p className="text-sm">{i18n.t("runDetail.noChartData")}</p>
         <p className="text-xs">{i18n.t("runDetail.noChartDataDesc")}</p>
+        {isChinaFree && (
+          <p className="text-xs rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-warning">
+            China-free build: A-share (*.SH/*.SZ/*.BJ) and HK (*.HK) symbols resolve to `_unresolved` without network (fail-closed). Use *.NS/*.BO (India) or *.US via yahoo.
+          </p>
+        )}
       </div>
     );
   }

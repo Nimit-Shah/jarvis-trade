@@ -260,7 +260,8 @@ class TestRegistryWiring:
         from backtest.loaders.registry import FALLBACK_CHAINS
 
         assert FALLBACK_CHAINS["forex"][0] == "mt5"
-        assert "akshare" in FALLBACK_CHAINS["forex"]  # degradation path intact
+        # China-free: akshare removed from forex chain; degrades to yfinance only
+        assert FALLBACK_CHAINS["forex"] == ["mt5", "yfinance", "local"]
 
     @pytest.mark.parametrize(
         ("code", "expected"),

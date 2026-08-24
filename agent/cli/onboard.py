@@ -393,7 +393,7 @@ def _validate_key(provider: Provider, key: str) -> str | None:
 
 def _intro_header(console: Console) -> None:
     console.print()
-    console.print(Text("  Vibe-Trading setup", style=Theme.primary))
+    console.print(Text("  Jarvis-Trade setup", style=Theme.primary))
     console.print(Text(
         "  We didn't find a config at ~/.vibe-trading/.env.\n"
         "  Let's set up in under a minute.",

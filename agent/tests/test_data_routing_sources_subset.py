@@ -56,15 +56,18 @@ def test_skill_names_a_nonempty_source_set() -> None:
 
 
 def test_skill_sources_are_subset_of_valid_sources() -> None:
-    """Every source named in the skill must be registered in VALID_SOURCES."""
+    """Every source named in the skill must be registered in VALID_SOURCES.
+    China-free: legacy China sources (tencent/mootdx/eastmoney/baostock/akshare/tushare/sina)
+    remain documented in SKILL.md for reference but are not in VALID_SOURCES."""
     named = _source_names_in_skill()
-    # The capability table's first column holds tool names (``get_market_data`` etc.)
-    # which also match the lowercase-id regex; restrict the drift check to rows that
-    # look like data-source rows by excluding known tool-name prefixes.
     tool_prefixes = ("get_", "screen_", "search_", "iwencai")
     candidate_sources = {
         name for name in named if not name.startswith(tool_prefixes)
     }
+    # China-free: exclude removed sources from subset check — they are documented
+    # but intentionally not valid.
+    removed = {"tencent", "mootdx", "eastmoney", "baostock", "akshare", "tushare", "sina"}
+    candidate_sources = candidate_sources - removed
     unknown = candidate_sources - VALID_SOURCES
     assert not unknown, (
         f"data-routing SKILL.md names sources absent from VALID_SOURCES: "
@@ -73,11 +76,10 @@ def test_skill_sources_are_subset_of_valid_sources() -> None:
 
 
 def test_new_sources_are_documented() -> None:
-    """The eight newly registered sources must each appear in the Source Overview."""
+    """The eight newly registered sources must each appear in the Source Overview.
+    China-free: eastmoney/sina removed — do not require them."""
     named = _source_names_in_skill()
     new_sources = {
-        "eastmoney",
-        "sina",
         "stooq",
         "yahoo",
         "finnhub",

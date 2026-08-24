@@ -608,12 +608,19 @@ else:
 
 AGENT_DIR = Path(__file__).resolve().parents[2]
 
-# .env search order: ~/.vibe-trading/.env → agent/.env → $CWD/.env
-_ENV_CANDIDATES = [
-    Path.home() / ".vibe-trading" / ".env",
-    AGENT_DIR / ".env",
-    Path.cwd() / ".env",
-]
+# .env search order: $VIBE_TRADING_HOME/.env (if set) → ~/.vibe-trading/.env → agent/.env → $CWD/.env
+def _env_candidates() -> list[Path]:
+    cands: list[Path] = []
+    vth = os.environ.get("VIBE_TRADING_HOME", "").strip()
+    if vth:
+        try:
+            cands.append(Path(vth).expanduser() / ".env")
+        except Exception:
+            pass
+    cands.extend([Path.home() / ".vibe-trading" / ".env", AGENT_DIR / ".env", Path.cwd() / ".env"])
+    return cands
+
+_ENV_CANDIDATES = _env_candidates()
 
 # Index-aligned with _ENV_CANDIDATES. CWE-209: never log the absolute
 # .env path (it leaks the OS username / home / CWD). The label names
@@ -1063,8 +1070,10 @@ def _ensure_dotenv() -> None:
     global _dotenv_loaded
     if _dotenv_loaded:
         return
+    # Recompute to respect VIBE_TRADING_HOME set after import (Settings persistence)
+    candidates = _env_candidates() if "VIBE_TRADING_HOME" in os.environ else _ENV_CANDIDATES
     loaded = None
-    for candidate in _ENV_CANDIDATES:
+    for candidate in candidates:
         if candidate.exists():
             _load_env_file(candidate)
             loaded = candidate

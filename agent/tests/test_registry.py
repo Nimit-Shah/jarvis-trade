@@ -146,8 +146,13 @@ class TestFallbackChains:
         assert FALLBACK_CHAINS["vietnam_equity"] == ["yahoo", "yfinance", "local"]
 
     def test_chains_are_non_empty(self) -> None:
+        # China-free: a_share/hk_equity/futures/fund/macro intentionally empty — research fails closed.
+        allowed_empty = {"a_share", "hk_equity", "futures", "fund", "macro"}
         for market, chain in FALLBACK_CHAINS.items():
-            assert len(chain) > 0, f"Fallback chain for {market} is empty"
+            if market in allowed_empty:
+                assert chain == [], f"Fallback chain for {market} must be empty (China-free)"
+            else:
+                assert len(chain) > 0, f"Fallback chain for {market} is empty"
 
     def test_crypto_chain_includes_yfinance_fallback(self) -> None:
         """yfinance is a fallback for crypto when OKX, Binance and CCXT fail."""
@@ -157,39 +162,34 @@ class TestFallbackChains:
 
     def test_chains_ordered_by_ip_ban_risk(self) -> None:
         """Equity chains lead with throttle-tolerant public sources and trail
-        with key-gated REST fallbacks, in the exact reviewed order."""
-        assert FALLBACK_CHAINS["a_share"] == [
-            "tencent", "mootdx", "eastmoney", "baostock", "akshare", "tushare", "local",
-        ]
-        assert FALLBACK_CHAINS["us_equity"] == [
-            "yahoo", "stooq", "sina", "eastmoney", "yfinance", "tiingo", "fmp",
-            "finnhub", "alphavantage", "longbridge", "akshare", "local",
-        ]
-        assert FALLBACK_CHAINS["hk_equity"] == [
-            "tencent", "eastmoney", "yahoo", "futu", "akshare", "yfinance", "tushare", "longbridge", "local",
-        ]
+        with key-gated REST fallbacks, in the exact reviewed order.
+        China-free: a_share/hk_equity intentionally empty — research fails closed."""
+        # China-free build: a_share and hk_equity are empty (no fallback to China)
+        assert FALLBACK_CHAINS["a_share"] == []
+        assert FALLBACK_CHAINS["hk_equity"] == []
+        assert FALLBACK_CHAINS["us_equity"] == ["yahoo"]
+        assert FALLBACK_CHAINS["india_equity"] == ["yahoo", "yfinance", "india_broker", "local"]
 
     def test_us_equity_includes_sina_fallback(self) -> None:
-        """'sina' must be reachable for US equities (after yahoo/stooq) so it is
-        not a dead config source that no chain can ever select."""
+        """China-free: US equities route via yahoo only — sina must NOT be in chain."""
         chain = FALLBACK_CHAINS["us_equity"]
-        assert "sina" in chain
-        assert chain.index("sina") > chain.index("yahoo")
-        assert chain.index("sina") > chain.index("stooq")
+        assert "sina" not in chain
+        assert chain == ["yahoo"]
 
     def test_a_share_includes_baostock(self) -> None:
-        """'baostock' must remain a reachable A-share fallback."""
-        assert "baostock" in FALLBACK_CHAINS["a_share"]
+        """China-free: a_share chain is empty — baostock must NOT be a fallback."""
+        assert "baostock" not in FALLBACK_CHAINS["a_share"]
+        assert FALLBACK_CHAINS["a_share"] == []
 
     def test_unchanged_chains_preserved(self) -> None:
-        """crypto/futures/fund/macro/forex chains must be left untouched."""
+        """China-free: futures/fund/macro empty; forex degrades to yfinance only."""
         assert FALLBACK_CHAINS["crypto"] == ["okx", "binance", "ccxt", "yfinance", "local"]
-        assert FALLBACK_CHAINS["futures"] == ["tushare", "akshare", "local"]
-        assert FALLBACK_CHAINS["fund"] == ["tushare", "akshare", "local"]
-        assert FALLBACK_CHAINS["macro"] == ["akshare", "tushare", "local"]
-        # mt5 heads the forex chain (terminal feed when attached), degrading to
-        # the previous chain unchanged.
-        assert FALLBACK_CHAINS["forex"] == ["mt5", "akshare", "yfinance", "local"]
+        # China-free: intentionally empty — research fails closed
+        assert FALLBACK_CHAINS["futures"] == []
+        assert FALLBACK_CHAINS["fund"] == []
+        assert FALLBACK_CHAINS["macro"] == []
+        # mt5 heads the forex chain; China-free removes akshare fallback
+        assert FALLBACK_CHAINS["forex"] == ["mt5", "yfinance", "local"]
 
     def test_tickerall_is_explicit_only_never_a_fallback(self) -> None:
         """TickerAll is a valid explicit source but must NEVER join an automatic
@@ -208,9 +208,10 @@ class TestFallbackChains:
 
 class TestValidSources:
     def test_includes_new_loaders(self) -> None:
-        """Newly registered loaders must be accepted config sources."""
+        """Newly registered loaders must be accepted config sources.
+        China-free: eastmoney/sina removed — do not require them."""
         new_sources = {
-            "eastmoney", "sina", "stooq", "yahoo",
+            "stooq", "yahoo",
             "finnhub", "alphavantage", "tiingo", "fmp",
         }
         assert new_sources <= VALID_SOURCES
@@ -223,11 +224,14 @@ class TestValidSources:
 
     def test_covers_all_registered_loaders(self) -> None:
         """Every registered loader name must be an accepted config source so a
-        new loader can never be silently rejected by config validation."""
+        new loader can never be silently rejected by config validation.
+        China-free: removed sources excluded."""
         from backtest.loaders.registry import _ensure_registered
 
         _ensure_registered()
-        missing = set(LOADER_REGISTRY) - VALID_SOURCES
+        removed = {"tencent", "mootdx", "eastmoney", "baostock", "akshare", "tushare", "sina"}
+        registered = set(LOADER_REGISTRY) - removed
+        missing = registered - VALID_SOURCES
         assert not missing, f"loaders missing from VALID_SOURCES: {missing}"
 
 

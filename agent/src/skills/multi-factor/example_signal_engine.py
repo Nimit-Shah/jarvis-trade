@@ -29,6 +29,47 @@ def zscore_cross_section(series_map: Dict[str, float]) -> Dict[str, float]:
     return {k: (v - mean) / std if not np.isnan(v) else 0.0 for k, v in series_map.items()}
 
 
+def compute_ic_weights(
+    ic_summaries: Dict[str, Dict[str, float]],
+    metric: str = "ir",
+    normalize: bool = True,
+) -> Dict[str, float]:
+    """Derive factor weights from factor_analysis IC summaries.
+
+    Args:
+        ic_summaries: Mapping factor_name -> {"ic_mean":..., "ir":..., "ic_std":...}
+            as produced by factor_analysis_tool's ic_summary.json.
+        metric: Which IC metric to use as weight: "ir" (IR = ic_mean/ic_std, default)
+            or "ic_mean". Negative IC naturally yields negative weight (reversal).
+        normalize: If True, scale so sum(|w|)==1.
+
+    Returns:
+        Dict factor_name -> normalized weight. Falls back to equal-weight if
+        all IR are zero/NaN or ic_summaries empty.
+
+    Example:
+        >>> summaries = {"momentum": {"ir": 0.8}, "reversal": {"ir": -0.3}, "volatility": {"ir": 0.5}}
+        >>> compute_ic_weights(summaries)
+        {"momentum": 0.5, "reversal": -0.1875, "volatility": 0.3125}
+    """
+    if not ic_summaries:
+        return {}
+    raw = {}
+    for name, summ in ic_summaries.items():
+        v = summ.get(metric, 0.0)
+        if v is None or (isinstance(v, float) and np.isnan(v)):
+            v = 0.0
+        raw[name] = float(v)
+    total_abs = sum(abs(v) for v in raw.values())
+    if total_abs < 1e-12:
+        # All zero → equal-weight fallback
+        n = len(raw)
+        return {k: 1.0 / n for k in raw} if n else {}
+    if normalize:
+        return {k: v / total_abs for k, v in raw.items()}
+    return raw
+
+
 class SignalEngine:
     """多因子截面排名信号引擎。
 
@@ -52,6 +93,7 @@ class SignalEngine:
         vol_window: int = 20,
         top_n: int = 3,
         rebalance_freq: int = 20,
+        factor_weights: Dict[str, float] | None = None,
     ):
         """初始化多因子引擎。
 
@@ -60,11 +102,16 @@ class SignalEngine:
             vol_window: 波动率回看窗口。
             top_n: 选股数量。
             rebalance_freq: 调仓频率（交易日）。
+            factor_weights: Optional dict mapping factor_name -> weight for IC-weighted synthesis.
+                If None, equal-weight (1.0 per factor). Example from factor_analysis:
+                {"momentum": 0.5, "reversal": -0.2, "volatility": 0.3} where weight = IR or ic_mean.
+                Weights are auto-normalized to sum(|w|)=1 if sum != 0.
         """
         self.momentum_window = momentum_window
         self.vol_window = vol_window
         self.top_n = top_n
         self.rebalance_freq = rebalance_freq
+        self.factor_weights = factor_weights
 
     def _compute_factors(self, df: pd.DataFrame) -> pd.DataFrame:
         """计算单只股票的因子值。
@@ -114,8 +161,19 @@ class SignalEngine:
         all_dates = sorted(set().union(*(f.index for f in factor_map.values())))
         date_index = pd.DatetimeIndex(all_dates)
 
+        # Resolve factor weights: equal-weight or IC-weighted (normalized)
+        if self.factor_weights:
+            # Normalize so sum(|w|) == 1, preserving sign (IC may be negative)
+            total_abs = sum(abs(v) for v in self.factor_weights.values())
+            if total_abs > 1e-12:
+                norm_weights = {k: v / total_abs for k, v in self.factor_weights.items()}
+            else:
+                norm_weights = {k: 1.0 / len(self.factor_weights) for k in self.factor_weights}
+        else:
+            norm_weights = {name: 1.0 for name in ["momentum", "reversal", "volatility", "volume_ratio"]}
+
         signals = {code: pd.Series(0.0, index=date_index) for code in codes}
-        factor_names = ["momentum", "reversal", "volatility", "volume_ratio"]
+        factor_names = [n for n in ["momentum", "reversal", "volatility", "volume_ratio"] if n in norm_weights]
 
         last_selected: List[str] = []
         for i, dt in enumerate(date_index):
@@ -126,9 +184,10 @@ class SignalEngine:
                     signals[code].at[dt] = weight
                 continue
 
-            # 调仓日：截面排名
+            # 调仓日：截面排名 (IC-weighted if factor_weights provided)
             composite_scores: Dict[str, float] = {}
             for factor_name in factor_names:
+                w = norm_weights.get(factor_name, 1.0)
                 raw_vals = {}
                 for code in codes:
                     if dt in factor_map[code].index:
@@ -137,7 +196,7 @@ class SignalEngine:
                         raw_vals[code] = np.nan
                 z_vals = zscore_cross_section(raw_vals)
                 for code in codes:
-                    composite_scores[code] = composite_scores.get(code, 0.0) + z_vals.get(code, 0.0)
+                    composite_scores[code] = composite_scores.get(code, 0.0) + w * z_vals.get(code, 0.0)
 
             # 排名取 TopN
             ranked = sorted(composite_scores.items(), key=lambda x: x[1], reverse=True)

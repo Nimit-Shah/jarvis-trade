@@ -30,7 +30,7 @@
     "collapse": "Contraer",
     "expand": "Expandir",
     "skipToMain": "Saltar al contenido principal",
-    "sidebar": "Barra lateral de Vibe-Trading",
+    "sidebar": "Barra lateral de Jarvis-Trade",
     "mainNavigation": "Navegación principal",
     "about": "Acerca de"
   },
@@ -377,7 +377,7 @@
     "clearApiKey": "Borrar clave de API guardada",
     "channels": {
       "title": "Canales de mensajería",
-      "description": "Conecta adaptadores de chat al mismo runtime de sesión de Vibe-Trading usado por la interfaz web y la CLI.",
+      "description": "Conecta adaptadores de chat al mismo runtime de sesión de Jarvis-Trade usado por la interfaz web y la CLI.",
       "runtime": "Runtime",
       "running": "En ejecución",
       "stopped": "Detenido",

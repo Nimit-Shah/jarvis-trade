@@ -4,77 +4,113 @@
 
 @layer base {
   :root {
-    /* Light mode surfaces */
-    --background: 220 20% 98%;
-    --foreground: 220 20% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    /* Solar Dusk — light surface palette */
+    --background: 40 60% 98%;       /* #FDFBF7 */
+    --foreground: 21 18% 25%;       /* #4A3B33 */
+    --card: 36 42% 95%;             /* #F8F4EE */
+    --card-foreground: 21 18% 25%;
 
     /* Popover: a slightly elevated surface used for floating menus,
-       tooltips, and the language switcher dropdown. Falls back to a
-       solid white (light) or surface-1 (dark) so dropdowns never
-       appear transparent and let underlying content bleed through. */
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+       tooltips, and the language switcher dropdown. */
+    --popover: 36 42% 92%;          /* #F8F4EE */
+    --popover-foreground: 21 18% 25%;
 
-    /* Brand accent */
-    --primary: 27 90% 52%;
+    /* Brand accent — warm burnt amber */
+    --primary: 26 90% 37%;          /* #B45309 */
     --primary-foreground: 0 0% 100%;
+    --ring: 26 90% 37%;
+    --accent: 34 68% 84%;           /* #F2DABA */
+    --accent-foreground: 33 5% 32%;
+    --secondary: 34 61% 73%;        /* #E4C090 */
+    --secondary-foreground: 33 5% 32%;
 
-    --muted: 220 14% 92%;
-    --muted-foreground: 220 14% 46%;
-    --destructive: 0 84% 60%;
+    --muted: 39 45% 90%;            /* #F1E9DA */
+    --muted-foreground: 25 5% 45%;  /* #78716C */
+    --input: 43 43% 82%;            /* #E4D9BC */
+    --destructive: 0 70% 35%;       /* #991B1B */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 14% 87%;
-    --radius: 0.5rem;
+    --border: 43 43% 82%;           /* #E4D9BC */
+    --radius: 0.3rem;
+
+    /* Sidebar — Solar Dusk gives the rail its own warm surface */
+    --sidebar: 39 45% 90%;          /* #F1E9DA */
+    --sidebar-foreground: 21 18% 25%;
+    --sidebar-primary: 26 90% 37%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 35 92% 33%;   /* #A16207 */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-ring: 26 90% 37%;
+    --sidebar-border: 43 43% 82%;
 
     /* Semantic colors */
-    --success: 142 71% 45%;
-    --danger: 0 84% 60%;
+    --success: 142 65% 45%;
+    --danger: 0 70% 35%;
     --warning: 38 92% 50%;
-    --info: 217 91% 60%;
+    --info: 199 89% 48%;
 
     /* Chart tokens */
-    --chart-grid: 220 14% 90%;
-    --chart-text: 220 14% 46%;
-    --chart-axis: 220 14% 80%;
-    --chart-compare-a: #3b82f6;
-    --chart-compare-b: #f59e0b;
+    --chart-grid: 43 30% 86%;
+    --chart-text: 25 5% 45%;
+    --chart-axis: 33 25% 72%;
+    --chart-compare-a: #0EA5E9;
+    --chart-compare-b: #EAB308;
+    --chart-1: 26 90% 37%;          /* #B45309 */
+    --chart-2: 25 5% 45%;           /* #78716C */
+    --chart-3: 35 92% 33%;          /* #A16207 */
+    --chart-4: 25 5% 45%;           /* #78716C */
+    --chart-5: 41 96% 40%;          /* #CA8A04 */
   }
 
   .dark {
-    /* Dark mode: 4-level surface system. Keep >=5 lightness points between
-       adjacent surfaces — smaller deltas are indistinguishable on most
-       panels (sidebar vs main blended at 5%/8%). */
-    --background: 220 20% 5%;       /* bg-base */
-    --foreground: 220 10% 93%;
-    --card: 220 18% 10%;            /* surface-1 */
-    --card-foreground: 220 10% 93%;
+    /* Solar Dusk — dark surfaces */
+    --background: 24 10% 10%;       /* #1C1917 */
+    --foreground: 60 5% 96%;        /* #F5F5F4 */
+    --card: 12 6% 15%;              /* #292524 */
+    --card-foreground: 60 5% 96%;
 
-    --popover: 220 18% 12%;         /* surface-1.5 (slightly lighter than card) */
-    --popover-foreground: 220 10% 93%;
+    --popover: 12 6% 15%;           /* #292524 */
+    --popover-foreground: 60 5% 96%;
 
-    --primary: 27 90% 52%;
+    --primary: 25 95% 53%;          /* #F97316 */
     --primary-foreground: 0 0% 100%;
+    --ring: 25 95% 53%;
+    --accent: 198 46% 22%;          /* #1E4252 */
+    --accent-foreground: 20 6% 90%;
+    --secondary: 33 5% 32%;         /* #57534E */
+    --secondary-foreground: 20 6% 90%;
 
-    --muted: 220 16% 16%;           /* surface-2 */
-    --muted-foreground: 220 10% 64%;
-    --destructive: 0 62% 50%;
+    --muted: 30 10% 11%;            /* #201D1A */
+    --muted-foreground: 24 5% 64%;  /* #A8A29E */
+    --input: 30 6% 25%;             /* #44403C */
+    --destructive: 0 72% 51%;       /* #DC2626 */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 14% 24%;          /* surface-3 */
+    --border: 30 6% 25%;            /* #44403C */
 
-    /* Semantic colors */
-    --success: 142 71% 45%;
-    --danger: 0 62% 50%;
+    --sidebar: 12 6% 15%;           /* #292524 */
+    --sidebar-foreground: 60 5% 96%;
+    --sidebar-primary: 25 95% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 199 89% 48%;  /* #0EA5E9 */
+    --sidebar-accent-foreground: 212 73% 17%;
+    --sidebar-ring: 25 95% 53%;
+    --sidebar-border: 30 6% 25%;
+
+    --success: 142 65% 45%;
+    --danger: 0 72% 51%;
     --warning: 38 92% 50%;
-    --info: 217 91% 60%;
+    --info: 199 89% 48%;
 
     /* Chart tokens */
-    --chart-grid: 220 20% 14%;
-    --chart-text: 220 10% 55%;
-    --chart-axis: 220 20% 26%;
-    --chart-compare-a: #60a5fa;
-    --chart-compare-b: #fbbf24;
+    --chart-grid: 30 10% 22%;
+    --chart-text: 24 5% 64%;
+    --chart-axis: 30 8% 30%;
+    --chart-compare-a: #0EA5E9;
+    --chart-compare-b: #EAB308;
+    --chart-1: 25 95% 53%;          /* #F97316 */
+    --chart-2: 199 89% 48%;         /* #0EA5E9 */
+    --chart-3: 45 93% 47%;          /* #EAB308 */
+    --chart-4: 24 5% 64%;           /* #A8A29E */
+    --chart-5: 25 5% 45%;           /* #78716C */
   }
 
   * { @apply border-border; }

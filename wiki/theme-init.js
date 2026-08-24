@@ -1,6 +1,6 @@
 (function () {
   try {
-    var stored = localStorage.getItem("vibetrading-theme");
+    var stored = localStorage.getItem("jarvistrade-theme");
     var resolved = stored === "dark" || stored === "light"
       ? stored
       : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";

@@ -18,13 +18,27 @@ export default {
         danger: "hsl(var(--danger))",
         warning: "hsl(var(--warning))",
         info: "hsl(var(--info))",
+        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+        ring: "hsl(var(--ring))",
+        input: "hsl(var(--input))",
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          primaryForeground: "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          accentForeground: "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+        },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        // Display serif for the hero greeting only — system stack, no webfont.
-        // Deliberately NOT used for answers/tables (numeric content stays sans/mono).
-        serif: ["Georgia", "Songti SC", "Noto Serif SC", "serif"],
-        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+        // Solar Dusk display sans — Oxanium (fallback to system-ui if webfont missing)
+        sans: ["Oxanium", "system-ui", "sans-serif"],
+        // Display serif for the hero greeting only — Merriweather (Solar Dusk).
+        serif: ["Merriweather", "Georgia", "Songti SC", "Noto Serif SC", "serif"],
+        // Numeric / code — Fira Code (Solar Dusk).
+        mono: ["Fira Code", "JetBrains Mono", "ui-monospace", "monospace"],
       },
       borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
     },

@@ -14,12 +14,23 @@ from src.config.accessor import get_env_config
 
 _TUSHARE_TOKEN_PLACEHOLDERS = {"", "your-tushare-token"}
 
+# China-free: tushare removed from VALID_SOURCES → fail closed
+def _is_china_free() -> bool:
+    try:
+        from backtest.loaders.registry import VALID_SOURCES
+
+        return "tushare" not in VALID_SOURCES
+    except Exception:
+        return False
+
 
 class TushareFallbackUnavailable(RuntimeError):
     """Raised when the optional Tushare fallback cannot be used."""
 
 
 def _pro_api() -> Any:
+    if _is_china_free():
+        raise TushareFallbackUnavailable("China-free build: tushare disabled")
     token = get_env_config().data.tushare_token.strip()
     if token in _TUSHARE_TOKEN_PLACEHOLDERS:
         raise TushareFallbackUnavailable("TUSHARE_TOKEN is not configured")

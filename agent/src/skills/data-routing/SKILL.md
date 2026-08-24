@@ -19,27 +19,26 @@ per-source skill.
 
 | Source | Markets | Auth (env key) | Network | Skill |
 |--------|---------|----------------|---------|-------|
-| tushare | A-shares, funds, futures, macro | Yes (`TUSHARE_TOKEN`) | China network | tushare |
-| akshare | A-shares, US, HK, futures, macro, forex | No | Unrestricted | akshare |
+| yahoo | US, HK, Canada (TSX/TSXV), India (NSE/BSE) equities | No (IP-throttled) | Needs Yahoo access | data-routing |
 | yfinance | US, HK, Canada (TSX/TSXV) stocks, ETFs | No | Needs Yahoo access | yfinance |
 | okx | Crypto (OKX exchange) | No | Needs okx.com access | okx-market |
+| binance | Crypto (Binance) | No | Needs binance.com access | data-routing |
 | ccxt | Crypto (100+ exchanges) | No | Needs exchange access | ccxt |
-| baostock | A-shares (free daily/min) | No | China network | data-routing |
-| tencent | A-shares, HK, US (never-banned) | No | Unrestricted | data-routing |
-| mootdx | A-shares (TDX servers, never-banned) | No | China network | data-routing |
 | futu | A/HK/US via OpenD gateway | Yes (OpenD running) | Local gateway | data-routing (runner-internal) |
 | mt5 | Forex & metals (your broker's MT5 feed) | Yes (running, logged-in MT5 terminal; optional `~/.vibe-trading/mt5.json`) | Local terminal (Windows) | data-routing (runner-internal) |
 | tickerall | Forex & metals (same broker MT5 feed, hosted) | Yes (`TICKERALL_API_KEY` + `TICKERALL_ACCOUNT_ID`; read-only) | Hosted API (any OS, no terminal) | data-routing (runner-internal; **explicit `source=tickerall` only**) |
 | local | User CSV/parquet on disk | No | Offline | data-routing (runner-internal) |
-| eastmoney | A-shares, HK, US equities | No (IP-throttled) | Unrestricted | data-routing |
-| sina | US equities (daily OHLCV) | No (IP-throttled) | Unrestricted | data-routing |
+| india_broker | India NSE/BSE via broker (Shoonya/Dhan) | Yes (broker login) | Broker API | data-routing |
+| pykrx | Korea KOSPI/KOSDAQ | No | Needs KRX access | data-routing |
+| longbridge | US/HK via Longbridge | Yes (`LONGBRIDGE_*`) | Longbridge API | data-routing |
 | stooq | US equities (daily OHLCV) | No | Unrestricted | data-routing |
-| yahoo | US, HK, Canada (TSX/TSXV) equities | No (IP-throttled) | Needs Yahoo access | data-routing |
 | finnhub | US equities | Yes (`FINNHUB_API_KEY`) | Unrestricted | data-routing |
 | alphavantage | US equities | Yes (`ALPHAVANTAGE_API_KEY`) | Unrestricted | data-routing |
 | tiingo | US equities | Yes (`TIINGO_API_KEY`) | Unrestricted | data-routing |
 | fmp | US equities | Yes (`FMP_API_KEY`) | Unrestricted | data-routing |
 | qveris | Global multi-asset (paid, credits) | Yes (`QVERIS_API_KEY` / Settings) | QVeris API | qveris <!-- QVERIS-INTEGRATION --> |
+
+> **China-free build:** A-share (`*.SH/*.SZ/*.BJ`), HK (`*.HK`), and related `tencent/mootdx/eastmoney/baostock/akshare/tushare/sina` sources are intentionally removed. Their symbols resolve to `_unresolved` without network (fail-closed). Use `*.NS/*.BO` (India) or `*.US` (US) via `yahoo`→`yfinance`→`india_broker`.
 
 ## Capability → Tool Routing
 
@@ -93,18 +92,16 @@ same-market sources automatically. Only set a concrete source when the user asks
 
 ### Source priority (for OHLCV by market)
 
-- **A-shares**: tencent / mootdx (never banned) > tushare (`TUSHARE_TOKEN`) >
-  baostock / akshare > eastmoney (throttled).
-- **US stocks**: stooq / yahoo > tiingo / finnhub / fmp / alphavantage (key-gated) >
-  sina / eastmoney (throttled) > yfinance.
-- **HK stocks**: tencent (never banned, daily) > eastmoney / yahoo > futu (local
-  OpenD) > akshare (Eastmoney-backed, daily only) > yfinance > tushare
-  (`TUSHARE_TOKEN`) / longbridge (key-gated).
-- **Canada (TSX/TSXV)**: yahoo > yfinance > local; use Yahoo's canonical
-  `.TO` / `.V` suffixes (for example `TD.TO`, `PNG.V`).
-- **Crypto**: okx (single exchange) > ccxt (multi-exchange).
-- **Futures / macro**: tushare > akshare.
-- **Forex / metals**: mt5 (local MetaTrader 5 terminal, Windows) > akshare. TickerAll (`source="tickerall"`) is a hosted, no-terminal alternative to the *same* broker feed (any OS) — opt-in and **explicit-only**: it never joins this automatic chain, so a user's broker credential is used only when deliberately requested.
+- **A-shares**: China-free — no source. Symbols `*.SH/*.SZ/*.BJ` resolve to `_unresolved` (fail-closed, no network). Use India `*.NS/*.BO` or US `*.US`.
+- **US stocks**: `yahoo` only (single source; if `yahoo` misses → `_unresolved`). Previous `stooq/sina/eastmoney/yfinance/tiingo/fmp` fallbacks removed for China-free.
+- **HK stocks**: China-free — no source. Symbols `*.HK` resolve to `_unresolved`. Use `*.US` or `*.NS`.
+- **India (NSE/BSE)**: `yahoo` → `yfinance` → `india_broker` → `local` (SLO: all three miss → `_unresolved`).
+- **Korea (KRX)**: `pykrx` → `yahoo` → `yfinance` → `local`.
+- **Canada (TSX/TSXV)**: `yahoo` → `yfinance` → `local`; use Yahoo's canonical `.TO`/`.V` suffixes (e.g. `TD.TO`, `PNG.V`).
+- **Vietnam (HOSE)**: `yahoo` → `yfinance` → `local`.
+- **Crypto**: `okx` → `binance` → `ccxt` → `yfinance` → `local`.
+- **Futures / fund / macro**: China-free — no source, `_unresolved`.
+- **Forex / metals**: `mt5` (local MetaTrader 5 terminal, Windows) → `yfinance` → `local`. TickerAll (`source="tickerall"`) is a hosted, no-terminal alternative to the *same* broker feed (any OS) — opt-in and **explicit-only**: it never joins this automatic chain, so a user's broker credential is used only when deliberately requested.
 
 ## Symbol Format Reference
 
@@ -120,18 +117,10 @@ same-market sources automatically. Only set a concrete source when the user asks
 
 ## Ban-Risk & Fallback Notes
 
-- **Prefer never-banned sources**: `tencent` and `mootdx` have no observed IP ban;
-  reach for them first for A-share OHLCV when no token is set.
-- **Eastmoney rate-limits by IP and must be throttled.** Every Eastmoney-backed
-  tool/loader routes through the shared per-host throttle; do not hammer it. On a
-  throttle/timeout, fall back to the same-market source above (tencent/baostock).
-- **Sina / Yahoo also throttle by IP** — same per-host wrapper, same fallback rule.
-- **Key-gated sources need their env key** (`FINNHUB_API_KEY`,
-  `ALPHAVANTAGE_API_KEY`, `TIINGO_API_KEY`, `FMP_API_KEY`, `FRED_API_KEY`,
-  `VIBE_TRADING_IWENCAI_KEY`, `TUSHARE_TOKEN`). If the key is absent the tool/loader
-  is unavailable — route to a free same-market source instead of erroring out.
-- A single failing symbol or transient HTTP error is reported inside the envelope;
-  it never aborts the surrounding batch.
+- **China-free:** `tencent/mootdx/eastmoney/baostock/akshare/tushare/sina` are absent — any request naming them or using `*.SH/*.HK` returns `_unresolved` without hitting `web.ifzq.gtimg.cn`.
+- **Yahoo throttles by IP** — per-host wrapper, same fallback rule. US equities now have single source `yahoo`; if Yahoo throttles, result is `_unresolved` (no silent fallback).
+- **Key-gated sources need their env key** (`FINNHUB_API_KEY`, `ALPHAVANTAGE_API_KEY`, `TIINGO_API_KEY`, `FMP_API_KEY`, `FRED_API_KEY`). If the key is absent the loader is unavailable — route to a free same-market source instead of erroring out (`TUSHARE_TOKEN`/`VIBE_TRADING_IWENCAI_KEY` are China-free no-ops).
+- A single failing symbol or transient HTTP error is reported inside the envelope; it never aborts the surrounding batch.
 
 ## Data Verification Discipline
 
@@ -151,3 +140,20 @@ single source. Cross-check it:
   uncorroborated figure as established fact.
 
 This discipline is what separates analysis from aggregation.
+
+## Testing Chart Providers (China-free)
+
+When the user says "test all the chart providers connected to this app":
+
+1. Enumerate active providers: `from backtest.loaders.registry import VALID_SOURCES, FALLBACK_CHAINS` — expect 18 (`yahoo`, `yfinance`, `india_broker`, `pykrx`, `okx`, `binance`, `ccxt`, `stooq`, `futu`, `mt5`, `tickerall`, `local`, `qveris`, `longbridge`, `finnhub`, `alphavantage`, `tiingo`, `fmp` plus `auto`).
+2. Probe one symbol per market via `get_market_data` with `source="auto"` and `include_provenance=True`:
+   - US: `AAPL.US` → expect `yahoo` (`_provenance.source=="yahoo"`)
+   - India: `RELIANCE.NS` → `yahoo`→`yfinance`→`india_broker` chain
+   - Korea: `005930.KS` → `pykrx`→`yahoo`
+   - Canada: `TD.TO` → `yahoo`→`yfinance`
+   - Crypto: `BTC-USDT` → `okx`→`binance`→`ccxt`
+   - Forex: `EUR/USD` → `mt5`→`yfinance`
+3. For China symbols (`600519.SH`, `00700.HK`) expect `{"_unresolved":["600519.SH"]}` without network to `web.ifzq.gtimg.cn` — report as **China-free fail-closed**, not error.
+4. Report table: provider | market | sample symbol | source | rows | volume_unit | status. Use capped rows and provenance.
+
+Example success envelope: `{"RELIANCE.NS":[...], "_provenance":{"RELIANCE.NS":{"source":"yahoo","fallback_used":false}}, "_unresolved":["600519.SH"]}` is correct.

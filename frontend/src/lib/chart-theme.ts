@@ -28,11 +28,16 @@ function buildTheme() {
 
   const successHex = hslToHex(css("--success")) || "#22c55e";
   const dangerHex = hslToHex(css("--danger")) || "#ef4444";
-  const infoHex = hslToHex(css("--info")) || "#3b82f6";
-  const warningHex = hslToHex(css("--warning")) || "#f59e0b";
-  const gridHex = hslToHex(css("--chart-grid")) || (isDark ? "#1e2433" : "#e5e7eb");
-  const textHex = hslToHex(css("--chart-text")) || "#6b7280";
-  const axisHex = hslToHex(css("--chart-axis")) || "#374151";
+  const infoHex = hslToHex(css("--info")) || "#0EA5E9";
+  const warningHex = hslToHex(css("--warning")) || "#EAB308";
+  const gridHex = hslToHex(css("--chart-grid")) || (isDark ? "#2a2a28" : "#e6e0d0");
+  const textHex = hslToHex(css("--chart-text")) || "#78716C";
+  const axisHex = hslToHex(css("--chart-axis")) || "#57534E";
+
+  // Solar Dusk chart-series palette (chart-1..chart-5).
+  const seriesColors = ["--chart-1", "--chart-2", "--chart-3", "--chart-4", "--chart-5"]
+    .map((v) => hslToHex(css(v)))
+    .filter(Boolean);
 
   // Locale-aware candlestick colors: China = red up / green down
   const upHex = cn ? dangerHex : successHex;
@@ -44,15 +49,15 @@ function buildTheme() {
     axisColor: axisHex,
     upColor: upHex,
     downColor: downHex,
-    maColors: [warningHex, "#8b5cf6", infoHex],
+    maColors: seriesColors.length >= 3 ? seriesColors.slice(0, 3) : [warningHex, "#8b5cf6", infoHex],
     bollColor: "rgba(99,102,241,0.5)",
     volumeUp: upHex + "66",
     volumeDown: downHex + "66",
     infoColor: infoHex,
     warningColor: warningHex,
-    tooltipBg: isDark ? "rgba(10,14,22,0.92)" : "rgba(255,255,255,0.96)",
-    tooltipBorder: isDark ? "#1e2433" : "#e5e7eb",
-    tooltipText: isDark ? "#d1d5db" : "#374151",
+    tooltipBg: isDark ? "rgba(28,25,23,0.92)" : "rgba(253,251,247,0.96)",
+    tooltipBorder: isDark ? "#44403C" : "#E4D9BC",
+    tooltipText: isDark ? "#A8A29E" : "#4A3B33",
   };
 }
 

@@ -30,7 +30,7 @@
     "collapse": "Einklappen",
     "expand": "Ausklappen",
     "skipToMain": "Zum Hauptinhalt springen",
-    "sidebar": "Vibe-Trading-Seitenleiste",
+    "sidebar": "Jarvis-Trade-Seitenleiste",
     "mainNavigation": "Hauptnavigation",
     "about": "Über"
   },
@@ -377,7 +377,7 @@
     "clearApiKey": "Gespeicherten API-Schlüssel löschen",
     "channels": {
       "title": "IM-Kanäle",
-      "description": "Verbinden Sie Chat-Adapter mit derselben Vibe-Trading-Sitzungs-Laufzeit, die von Web-UI und CLI verwendet wird.",
+      "description": "Verbinden Sie Chat-Adapter mit derselben Jarvis-Trade-Sitzungs-Laufzeit, die von Web-UI und CLI verwendet wird.",
       "runtime": "Laufzeit",
       "running": "Läuft",
       "stopped": "Gestoppt",

@@ -7,9 +7,9 @@ import {
   DOCS_VERSIONS
 } from "/docs/content.js";
 
-const REPO = "HKUDS/Vibe-Trading";
+const REPO = "HKUDS/Jarvis-Trade";
 const API = `https://api.github.com/repos/${REPO}`;
-const STARS_CACHE_KEY = "vibetrading-github-stars";
+const STARS_CACHE_KEY = "jarvistrade-github-stars";
 const STARS_TTL_MS = 12 * 60 * 60 * 1000;
 
 const allPages = DOCS_STRUCTURE.flatMap((group) =>
@@ -78,12 +78,12 @@ function resolvePage(pageId) {
 }
 
 function setMeta(page, version) {
-  document.title = `${page.title} - Vibe-Trading Docs`;
-  const description = page.description || page.lead || "Vibe-Trading documentation.";
+  document.title = `${page.title} - Jarvis-Trade Docs`;
+  const description = page.description || page.lead || "Jarvis-Trade documentation.";
   document.querySelector('meta[name="description"]')?.setAttribute("content", description);
-  document.querySelector('meta[property="og:title"]')?.setAttribute("content", `${page.title} - Vibe-Trading Docs`);
+  document.querySelector('meta[property="og:title"]')?.setAttribute("content", `${page.title} - Jarvis-Trade Docs`);
   document.querySelector('meta[property="og:description"]')?.setAttribute("content", description);
-  const canonical = `https://vibetrading.wiki${canonicalPath(page.id, version)}`;
+  const canonical = `https://jarvistrade.wiki${canonicalPath(page.id, version)}`;
   document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonical);
   document.querySelector("link[rel='canonical']")?.setAttribute("href", canonical);
 }

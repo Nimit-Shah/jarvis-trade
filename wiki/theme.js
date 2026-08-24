@@ -1,4 +1,4 @@
-const STORAGE_KEY = "vibetrading-theme";
+const STORAGE_KEY = "jarvistrade-theme";
 
 function preferredTheme() {
   try {

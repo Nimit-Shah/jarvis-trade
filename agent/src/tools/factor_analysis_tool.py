@@ -48,6 +48,11 @@ def run_factor_analysis(
             ensure_ascii=False,
         )
 
+    # Small-universe auto-adapt: for 7 names, n_groups=5 yields thin groups; cap to max(2, n_codes//2)
+    n_codes = len(factor_df.columns.intersection(return_df.columns))
+    if n_codes < 10 and n_groups > max(2, n_codes // 2):
+        n_groups = max(2, n_codes // 2)
+
     ic_series = compute_ic_series(factor_df, return_df)
     if ic_series.empty:
         return json.dumps(

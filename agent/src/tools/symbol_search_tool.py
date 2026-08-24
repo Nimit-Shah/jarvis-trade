@@ -257,6 +257,14 @@ def _search_eastmoney(query: str) -> tuple[List[Dict[str, Any]], str]:
         ``(candidates, status)`` where ``status`` is ``"ok"`` on success or a
         short error string when the source failed (candidates is then empty).
     """
+    # China-free: eastmoney removed from VALID_SOURCES → no network
+    try:
+        from backtest.loaders.registry import VALID_SOURCES
+
+        if "eastmoney" not in VALID_SOURCES:
+            return [], "eastmoney disabled (China-free build)"
+    except Exception:
+        pass
     if _is_canadian_symbol(query):
         logger.info(
             "eastmoney skipped for Canadian symbol %r (no Canada coverage)",

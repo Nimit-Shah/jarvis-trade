@@ -1716,17 +1716,17 @@ def get_market_data(
 ) -> str:
     """Fetch OHLCV market data for stocks, crypto, or mixed symbols.
 
+    China-free build: 18 sources. A-share *.SH/*.SZ/*.BJ and HK *.HK resolve to
+    _unresolved without network (fail-closed). Valid sources: yahoo (US single
+    source), yfinance, india_broker (India *.NS/*.BO via yahoo→yfinance→india_broker),
+    pykrx (Korea *.KS/*.KQ), okx/binance/ccxt (crypto), mt5/yfinance (forex),
+    plus local/stooq/finnhub/alphavantage/tiingo/fmp/qveris/futu/longbridge/tickerall.
     Supported sources:
-    - "yfinance" / "yahoo": HK/US/Canada equities (free, e.g. AAPL.US,
-      700.HK, TD.TO, PNG.V)
-    - "okx": cryptocurrency (free, e.g. BTC-USDT, ETH-USDT)
-    - "tushare": China A-shares (requires TUSHARE_TOKEN, e.g. 000001.SZ)
-    - "baostock": China A-shares via TCP protocol, bypasses HTTP CDN blocks (e.g. 000001.SZ, 601595.SH)
-    - "tencent": China A-shares via Tencent Finance API (e.g. 000001.SZ, 601595.SH)
-    - "akshare": A-shares, US, HK, futures, forex (free, e.g. 000001.SZ, AAPL.US)
-    - "ccxt": crypto from 100+ exchanges (free, e.g. BTC/USDT)
+    - "yahoo": US equities (single source, e.g. AAPL.US; if yahoo misses → _unresolved)
+    - "yfinance": US/HK/Canada fallback (e.g. AAPL.US, TD.TO, PNG.V) — secondary only
+    - "okx"/"binance"/"ccxt": cryptocurrency (free, e.g. BTC-USDT, ETH-USDT)
     - "mt5": forex/metals from a local MetaTrader 5 terminal (Windows; e.g. EUR/USD, XAUUSD.FX)
-    - "auto": auto-detect based on symbol format (with fallback)
+    - "auto": auto-detect based on symbol format (with fallback; India *.NS/*.BO → yahoo→yfinance→india_broker)
 
     Args:
         codes: List of symbols (e.g. ["AAPL.US", "TD.TO", "BTC-USDT", "000001.SZ"]).

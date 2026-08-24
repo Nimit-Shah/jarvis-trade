@@ -1443,6 +1443,28 @@ def _fetch_auto(codes: List[str], config: dict, interval: str = "1D") -> dict:
                     "Runtime fallback: %s -> %s for %s", src_name, fb_name, market
                 )
 
+        # Yahoo-only single-source (China-free) – transient throttle/empty may lose one of 7.
+        # Retry missing symbols once via same yahoo loader with short backoff before failing.
+        if missing and src_name == "yahoo" and market == "us_equity":
+            import time
+
+            for attempt in range(2):
+                time.sleep(0.6 * (attempt + 1))
+                try:
+                    retry_codes = _normalize_codes(missing, src_name)
+                    retry_result = loader.fetch(
+                        retry_codes, start_date, end_date, interval=interval
+                    )
+                    mapped_retry = _restore_original_codes(retry_result, missing, retry_codes)
+                    if mapped_retry:
+                        market_result.update(mapped_retry)
+                        missing = [c for c in missing if c not in mapped_retry]
+                        logger.info("yahoo retry %d recovered %s", attempt + 1, list(mapped_retry.keys()))
+                    if not missing:
+                        break
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("yahoo retry %d failed for %s: %s", attempt + 1, missing, exc)
+
         if missing:
             raise NoAvailableSourceError(
                 f"incomplete data for {market}; missing symbols: {missing}"

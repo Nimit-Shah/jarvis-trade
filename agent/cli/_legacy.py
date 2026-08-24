@@ -879,7 +879,7 @@ class _RunDashboard:
             body.add_row("")
             body.add_row(Panel(Text(latest, style="dim"), title="Latest answer", border_style="dim", padding=(0, 1)))
 
-        return Panel(body, title="Vibe-Trading", border_style="cyan", padding=(1, 1 if compact else 2))
+        return Panel(body, title="Jarvis-Trade", border_style="cyan", padding=(1, 1 if compact else 2))
 
 
 from cli.ui.rail import RailRunDashboard as _RunDashboard  # noqa: E402,F811
@@ -1684,7 +1684,7 @@ def _build_welcome_panel(term_width: Optional[int] = None) -> Panel:
     content_width = widths["content"]
 
     header_lines: list[Text] = []
-    title = f"Vibe-Trading v{_VERSION}"
+    title = f"Jarvis-Trade v{_VERSION}"
     subtitle = "finance agent CLI"
     if term_width < 78:
         header_lines.append(Text(title, style="bold cyan"))

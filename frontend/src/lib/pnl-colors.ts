@@ -35,6 +35,6 @@ export function getPnlColors(): PnlColors {
   return {
     profit: hslToHex(cssVar("--success")) || "#22c55e",
     loss: hslToHex(cssVar("--danger")) || "#ef4444",
-    neutral: isDark ? "#3a4252" : "#eef0f2",
+    neutral: isDark ? "#292524" : "#F1E9DA",
   };
 }

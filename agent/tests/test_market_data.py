@@ -33,12 +33,13 @@ from src.market_data import (
 @pytest.mark.parametrize(
     "code,expected",
     [
-        ("600519.SH", "tencent"),
-        ("000001.SZ", "tencent"),
-        ("430139.BJ", "tencent"),
+        # China-free: A-share and HK symbols intentionally map to _unresolved (fail-closed, no network)
+        ("600519.SH", "_unresolved"),
+        ("000001.SZ", "_unresolved"),
+        ("430139.BJ", "_unresolved"),
         ("AAPL.US", "yahoo"),
-        ("700.HK", "tencent"),
-        ("00700.HK", "tencent"),
+        ("700.HK", "_unresolved"),
+        ("00700.HK", "_unresolved"),
         ("RELIANCE.NS", "yahoo"),  # India NSE
         ("TCS.NS", "yahoo"),
         ("M&M.NS", "yahoo"),  # ampersand in ticker
@@ -55,12 +56,12 @@ from src.market_data import (
         ("XAUUSD.FX", "mt5"),
         ("local:my_file", "local"),
         # Yahoo futures / forex suffix conventions (#718) — must not fall to the
-        # ``tushare`` default (which routed them to China-market loaders).
+        # default (which is now _unresolved, not tushare).
         ("GC=F", "yahoo"),  # gold future
         ("CL=F", "yahoo"),  # crude future
         ("EURUSD=X", "yahoo"),  # forex pair
         ("JPY=X", "yahoo"),
-        ("something_weird", "tushare"),  # documented fallback
+        ("something_weird", "_unresolved"),  # documented fallback — China-free now _unresolved
     ],
 )
 def test_detect_source(code: str, expected: str) -> None:
@@ -288,12 +289,8 @@ def test_fetch_auto_groups_by_detected_source() -> None:
 
 
 def test_fetch_auto_hk_walks_hk_chain_not_us_chain() -> None:
-    """HK symbols must degrade through the hk_equity chain, not the US one.
-
-    A source-name-only chain lookup would match HK's yahoo membership against
-    the us_equity chain first, where the attempt budget exhausts on the
-    US-only stooq/sina loaders and never reaches eastmoney/akshare.
-    """
+    """China-free: HK symbols are fail-closed — empty hk_equity chain means
+    immediate _unresolved without walking any source (no network to China)."""
     from backtest.loaders.base import NoAvailableSourceError
 
     attempts: list[str] = []
@@ -311,15 +308,15 @@ def test_fetch_auto_hk_walks_hk_chain_not_us_chain() -> None:
         source="auto",
         loader_resolver=resolver,
     )
-    assert attempts[:2] == ["tencent", "eastmoney"]
-    assert "stooq" not in attempts and "sina" not in attempts
-    assert "_unresolved" not in out
-    assert "00700.HK" in out
+    # China-free: hk_equity chain is [] → only the detected _unresolved source is tried
+    assert attempts == ["_unresolved"]
+    assert "_unresolved" in out
+    assert out["_unresolved"] == ["00700.HK"]
 
 
 def test_fetch_auto_hk_akshare_reachable_within_default_budget() -> None:
-    """akshare (Eastmoney-backed HK daily) must be reachable within the
-    default ``max_fallback_attempts`` when every earlier HK source is down."""
+    """China-free: HK symbols are fail-closed — even akshare is not in hk_equity chain,
+    so 09988.HK must be _unresolved without reaching akshare."""
     from backtest.loaders.base import NoAvailableSourceError
 
     attempts: list[str] = []
@@ -337,10 +334,9 @@ def test_fetch_auto_hk_akshare_reachable_within_default_budget() -> None:
         source="auto",
         loader_resolver=resolver,
     )
-    assert "_unresolved" not in out
-    assert "09988.HK" in out
-    assert attempts[-1] == "akshare"
-    assert len(attempts) <= 5
+    assert "_unresolved" in out
+    assert out["_unresolved"] == ["09988.HK"]
+    assert attempts == ["_unresolved"]
 
 
 def test_fetch_auto_india_walks_india_chain() -> None:
@@ -369,14 +365,14 @@ def test_fetch_auto_india_walks_india_chain() -> None:
 
 
 def test_fetch_auto_us_still_walks_us_chain() -> None:
-    """US routing is unchanged by the market-aware chain selection."""
+    """China-free: US routing is yahoo-only — no stooq fallback."""
     from backtest.loaders.base import NoAvailableSourceError
 
     attempts: list[str] = []
 
     def resolver(src: str):
         attempts.append(src)
-        if src == "stooq":
+        if src == "yahoo":
             return _StubLoader
         raise NoAvailableSourceError(f"{src} unavailable in test")
 
@@ -387,7 +383,7 @@ def test_fetch_auto_us_still_walks_us_chain() -> None:
         source="auto",
         loader_resolver=resolver,
     )
-    assert attempts[:2] == ["yahoo", "stooq"]
+    assert attempts == ["yahoo"]
     assert "_unresolved" not in out
     assert "AAPL.US" in out
 

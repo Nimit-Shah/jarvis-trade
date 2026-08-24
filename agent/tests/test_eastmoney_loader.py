@@ -165,7 +165,18 @@ class TestFetchWithMockedClient:
 
 class TestFetchEndToEndHttpMocked:
     def test_a_share_through_real_client(self) -> None:
-        # push2his kline rows: "date,open,close,high,low,volume,amount".
+        # China-free: eastmoney disabled → no HTTP, empty result
+        from backtest.loaders.registry import VALID_SOURCES
+
+        if "eastmoney" not in VALID_SOURCES:
+            loader = DataLoader()
+            with patch.object(
+                eastmoney_client, "throttled_get_json", return_value={"data": {"klines": []}}
+            ) as http:
+                out = loader.fetch(["600519.SH"], "2024-01-01", "2024-01-31")
+            http.assert_not_called()
+            assert out == {}
+            return
         payload = {
             "data": {
                 "klines": [

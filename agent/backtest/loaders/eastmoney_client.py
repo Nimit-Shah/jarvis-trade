@@ -29,6 +29,15 @@ from backtest.loaders._http import resolve_min_interval, throttled_get_json
 
 logger = logging.getLogger(__name__)
 
+# China-free: when eastmoney is removed from VALID_SOURCES, fail closed without network
+def _is_china_free() -> bool:
+    try:
+        from backtest.loaders.registry import VALID_SOURCES
+
+        return "eastmoney" not in VALID_SOURCES
+    except Exception:
+        return False
+
 # Eastmoney kline endpoints. push2his serves historical bars; searchapi resolves
 # a free-text ticker to its fully-qualified secid (needed for US tickers).
 _KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
@@ -93,7 +102,10 @@ def get_json(url: str, *, params: dict[str, Any]) -> Any:
             retry policy.
         requests.HTTPError: Non-2xx response status.
         ValueError: Body is not valid JSON.
+        RuntimeError: China-free build — eastmoney disabled.
     """
+    if _is_china_free():
+        raise RuntimeError("China-free build: eastmoney disabled — no network to eastmoney.com")
     return throttled_get_json(
         url,
         host_key=_HOST_KEY,
@@ -219,6 +231,8 @@ def resolve_secid(symbol: str) -> str | None:
     Returns:
         The Eastmoney secid (e.g. ``"1.600519"``), or ``None`` if unresolvable.
     """
+    if _is_china_free():
+        return None
     if not symbol or "." not in symbol:
         return None
     code, _, suffix = symbol.rpartition(".")

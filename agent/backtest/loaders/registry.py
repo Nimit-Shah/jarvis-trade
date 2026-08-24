@@ -31,18 +31,11 @@ _registered = False
 # Keep in sync with ``_loader_modules`` below — the regression test
 # ``test_valid_sources_covers_all_registered_loaders`` enforces full coverage.
 VALID_SOURCES: set[str] = {
-    "tushare",
     "okx",
     "binance",
     "yfinance",
-    "akshare",
-    "baostock",
-    "tencent",
-    "mootdx",
     "ccxt",
     "futu",
-    "eastmoney",
-    "sina",
     "stooq",
     "yahoo",
     "finnhub",
@@ -73,7 +66,7 @@ def _ensure_registered() -> None:
     """Import every known loader module so ``@register`` decorators fire.
 
     Safe to call multiple times — only runs the imports once.
-    Loaders whose dependencies are missing (e.g. ``akshare`` not installed)
+    Loaders whose dependencies are missing (e.g. ``yfinance`` not installed)
     are silently skipped.
     """
     global _registered
@@ -82,18 +75,11 @@ def _ensure_registered() -> None:
     _registered = True
 
     _loader_modules = [
-        "backtest.loaders.tushare",
         "backtest.loaders.okx",
         "backtest.loaders.binance_loader",
         "backtest.loaders.yfinance_loader",
-        "backtest.loaders.akshare_loader",
-        "backtest.loaders.baostock_loader",
-        "backtest.loaders.tencent_loader",
-        "backtest.loaders.mootdx_loader",
         "backtest.loaders.ccxt_loader",
         "backtest.loaders.futu",
-        "backtest.loaders.eastmoney_loader",
-        "backtest.loaders.sina_loader",
         "backtest.loaders.stooq_loader",
         "backtest.loaders.yahoo_loader",
         "backtest.loaders.finnhub_loader",
@@ -131,33 +117,20 @@ _NO_NETWORK_FALLBACK_SOURCES: frozenset[str] = frozenset({"local", "qveris", "ti
 # Fallback chains: market_type -> ordered list of source names
 # ---------------------------------------------------------------------------
 
-# Chains are ordered by IP-ban risk first (lighter, throttle-tolerant public
-# endpoints lead; key-gated REST and rate-limit-prone sources trail), then by
-# data quality. Eastmoney/Sina/Stooq/Yahoo are unauthenticated public sources
-# that must be politely throttled; Finnhub/AlphaVantage/Tiingo/FMP are key-gated
-# REST fallbacks placed deeper in the chain.
+# China-free: intentionally empty — research fails closed for a_share/hk_equity/futures/fund/macro.
 FALLBACK_CHAINS: dict[str, list[str]] = {
-    "a_share":   ["tencent", "mootdx", "eastmoney", "baostock", "akshare", "tushare", "local"],
-    "us_equity": ["yahoo", "stooq", "sina", "eastmoney", "yfinance", "tiingo", "fmp", "finnhub", "alphavantage", "longbridge", "akshare", "local"],
-    # HK: tencent leads (no observed IP ban); akshare (Eastmoney-backed)
-    # precedes the Yahoo-SDK family, which is blocked from mainland IPs;
-    # tushare hk_daily is key-gated.
-    "hk_equity": ["tencent", "eastmoney", "yahoo", "futu", "akshare", "yfinance", "tushare", "longbridge", "local"],
+    "a_share": [],
+    "hk_equity": [],
     "india_equity": ["yahoo", "yfinance", "india_broker", "local"],
-    "kr_equity":   ["pykrx", "yahoo", "yfinance", "local"],
-    # TSX (.TO) / TSX Venture (.V): direct Yahoo first, SDK fallback second.
-    "ca_equity":   ["yahoo", "yfinance", "local"],
-    # Vietnam (.VN): Yahoo lists HOSE only — HNX and UPCOM are unsupported,
-    # so those two are reachable only through the user's local files.
+    "us_equity": ["yahoo"],
+    "kr_equity": ["pykrx", "yahoo", "yfinance", "local"],
+    "ca_equity": ["yahoo", "yfinance", "local"],
     "vietnam_equity": ["yahoo", "yfinance", "local"],
-    # OKX first (native), then dedicated Binance, then generic CCXT / Yahoo.
-    "crypto":    ["okx", "binance", "ccxt", "yfinance", "local"],
-    "futures":   ["tushare", "akshare", "local"],
-    "fund":      ["tushare", "akshare", "local"],
-    "macro":     ["akshare", "tushare", "local"],
-    # mt5 leads when a local MetaTrader 5 terminal is attached (Windows-only,
-    # broker feed); otherwise it reports unavailable and the chain proceeds.
-    "forex":     ["mt5", "akshare", "yfinance", "local"],
+    "crypto": ["okx", "binance", "ccxt", "yfinance", "local"],
+    "futures": [],
+    "fund": [],
+    "macro": [],
+    "forex": ["mt5", "yfinance", "local"],
 }
 
 

@@ -1,7 +1,7 @@
 [project]
 name = "vibe-trading-ai"
 version = "0.1.14"
-description = "Natural-language finance research AI agent with backtesting"
+description = "Jarvis-Trade (formerly Vibe-Trading) — Natural-language finance research AI agent with backtesting"
 requires-python = ">=3.11"
 license = "MIT"
 readme = "README.md"
@@ -64,14 +64,16 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://vibetrading.wiki/"
-Documentation = "https://vibetrading.wiki/docs/"
-Repository = "https://github.com/HKUDS/Vibe-Trading"
-Issues = "https://github.com/HKUDS/Vibe-Trading/issues"
+Homepage = "https://jarvistrade.wiki/ (redirect from https://vibetrading.wiki/)"
+Documentation = "https://jarvistrade.wiki/docs/ (redirect from https://vibetrading.wiki/docs/)"
+Repository = "https://github.com/HKUDS/Jarvis-Trade (redirect from https://github.com/HKUDS/Vibe-Trading)"
+Issues = "https://github.com/HKUDS/Jarvis-Trade/issues"
 
 [project.scripts]
 vibe-trading = "cli:main"
 vibe-trading-mcp = "mcp_server:main"
+jarvis-trade = "cli:main"
+jarvis-trade-mcp = "mcp_server:main"
 
 [tool.setuptools]
 package-dir = {"" = "agent"}

@@ -163,15 +163,29 @@ export function Settings() {
   const onProviderChange = (name: string) => {
     const provider = providers.find((item) => item.name === name);
     if (!provider || !form) return;
+    // Preserve user-typed custom model unless it was the old provider's default or empty
+    const oldDefault = selectedProvider?.default_model ?? "";
+    const currentModel = form.model_name.trim();
+    const isCustomModel = currentModel !== "" && currentModel !== oldDefault;
     setForm({
       ...form,
       provider: provider.name,
-      model_name: provider.default_model,
+      model_name: isCustomModel ? form.model_name : provider.default_model,
       base_url: provider.default_base_url,
     });
     setApiKey("");
     setClearApiKey(false);
-    setModelOptions([provider.default_model]);
+    // Keep custom model in options so dropdown still shows it
+    setModelOptions(
+      Array.from(
+        new Set(
+          [
+            ...(isCustomModel ? [form.model_name] : []),
+            provider.default_model,
+          ].filter(Boolean),
+        ),
+      ),
+    );
     setModelListHint(null);
   };
 

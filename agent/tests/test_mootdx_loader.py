@@ -229,14 +229,10 @@ def test_is_available_true_when_mootdx_present(fake_client: _FakeStdQuotes) -> N
 
 
 def test_registry_lists_mootdx_in_a_share_chain() -> None:
-    from backtest.loaders.registry import FALLBACK_CHAINS, _ensure_registered, LOADER_REGISTRY
+    # China-free: mootdx removed from VALID_SOURCES and a_share chain is empty.
+    from backtest.loaders.registry import FALLBACK_CHAINS, VALID_SOURCES
 
-    _ensure_registered()
-    assert "mootdx" in LOADER_REGISTRY
-    chain = FALLBACK_CHAINS["a_share"]
-    assert "mootdx" in chain
-    # Order is by IP-ban risk: throttle-tolerant public/no-auth sources lead,
-    # key-gated REST trails. So mootdx (TCP, no auth) > akshare (HTTP scrape) >
-    # tushare (key-gated REST, placed last).
-    assert chain.index("mootdx") < chain.index("akshare")
-    assert chain.index("akshare") < chain.index("tushare")
+    assert "mootdx" not in VALID_SOURCES
+    assert FALLBACK_CHAINS["a_share"] == []
+    # Loader file still exists on disk but is not registered via _loader_modules;
+    # direct import would still register, but registry's fallback chain is empty.

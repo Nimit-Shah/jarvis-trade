@@ -38,6 +38,37 @@ If `extra_fields` are available (China A-shares), you can also add:
 | vol_window | 20 | Volatility lookback window |
 | top_n | 3 | Number of selected stocks |
 | rebalance_freq | 20 | Rebalancing frequency (trading days) |
+| factor_weights | None | Optional dict factor→weight for IC-weighted synthesis. If set, composite = Σ w_i * z_i. Use IR or ic_mean from factor_analysis. |
+
+## IC-Weighted Factor Synthesis (2024-2025 US large-cap tech)
+
+For `Build a multi-factor alpha model using momentum (20d), reversal (5d), volatility (20d) on AAPL/MSFT/NVDA/GOOGL/AMZN/META/TSLA` with IC-weighting:
+
+1. **Data prep (US, China-free):** Use suffixed codes `["AAPL.US","MSFT.US","NVDA.US","GOOGL.US","AMZN.US","META.US","TSLA.US"]` (not bare `AAPL`), `source="auto"` or `"yahoo"` (yahoo-only chain; if throttled → `_unresolved`). Backtest `2024-01-01`→`2025-12-31` via `yahoo` (0.6s throttle). For `2024-2025`, fetch in one window; runner handles `GlobalEquityEngine` (US T+0).
+
+2. **Per-factor IC:** For each factor, build `factor_{name}.csv` (index=date, columns=codes) via `_compute_factors` logic, and `return_1d.csv` (next-day returns). Run `factor_analysis_tool` 3×:
+   ```
+   factor_analysis(factor_csv="factor_momentum.csv", return_csv="return_1d.csv", output_dir="out/mom", n_groups=2)  # n_groups auto-caps to 3 for 7 names
+   ```
+   Collect `ic_summary.json` → `{"ir":..., "ic_mean":...}`. For 7 names, `n_groups` auto-adapts to `max(2, n_codes//2)=3`; `min_valid` relaxes to 4 (was 5) to keep IC series non-empty.
+
+3. **Weight derivation:** 
+   ```python
+   from src.skills.multi_factor.example_signal_engine import compute_ic_weights
+   summaries = {"momentum": mom_json, "reversal": rev_json, "volatility": vol_json}
+   weights = compute_ic_weights(summaries, metric="ir")  # ir = ic_mean/ic_std, normalized sum|w|=1
+   # e.g. {"momentum": 0.5, "reversal": -0.18, "volatility": 0.32}
+   ```
+   Falls back to equal-weight if all IR≈0.
+
+4. **Composite:** `SignalEngine(momentum_window=20, vol_window=20, top_n=3, rebalance_freq=20, factor_weights=weights).generate(data_map)` → IC-weighted `z(mom)*w_mom + z(rev)*w_rev + z(vol)*w_vol`.
+
+Small-universe note: 7 names is thin for IC (noise, `t<2` often `dead`). Use `n_groups=2` and expect `ic_count` ~480 after 20d warmup; lowering `n_groups` avoids `Layered backtest failed: insufficient valid cross-section dates`.
+
+**Example `config.json` for backtest:**
+```json
+{"codes": ["AAPL.US","MSFT.US","NVDA.US","GOOGL.US","AMZN.US","META.US","TSLA.US"], "start_date": "2024-01-01", "end_date": "2025-12-31", "source": "auto", "initial_cash": 100000}
+```
 
 ## Common Pitfalls
 

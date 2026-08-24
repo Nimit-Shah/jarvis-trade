@@ -1427,7 +1427,7 @@ def _build_typer_app():  # type: ignore[no-untyped-def]
     app = typer.Typer(
         add_completion=False,
         no_args_is_help=False,
-        help="Vibe-Trading — natural-language finance research agent.",
+        help="Jarvis-Trade — natural-language finance research agent.",
         rich_markup_mode=None,
     )
 

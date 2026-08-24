@@ -1,8 +1,8 @@
 import { initTheme } from "./theme.js";
 
-const REPO = "HKUDS/Vibe-Trading";
+const REPO = "HKUDS/Jarvis-Trade";
 const API = `https://api.github.com/repos/${REPO}`;
-const STARS_CACHE_KEY = "vibetrading-github-stars";
+const STARS_CACHE_KEY = "jarvistrade-github-stars";
 const STARS_TTL_MS = 12 * 60 * 60 * 1000;
 
 function formatStarCount(n) {
@@ -69,7 +69,7 @@ function initInstallTabs() {
       }
       if (key) {
         try {
-          localStorage.setItem("vibetrading-install-tab", key);
+          localStorage.setItem("jarvistrade-install-tab", key);
         } catch {
           /* ignore */
         }
@@ -78,7 +78,7 @@ function initInstallTabs() {
   }
 
   try {
-    const saved = localStorage.getItem("vibetrading-install-tab");
+    const saved = localStorage.getItem("jarvistrade-install-tab");
     const selected = tabs.find((tab) => tab.getAttribute("data-tab") === saved);
     if (selected) selected.click();
   } catch {

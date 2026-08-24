@@ -403,21 +403,29 @@ class TestBacktestConfigSchema:
         assert explicit.initial_cash == 50_000
 
     def test_mootdx_and_futu_sources_accepted(self) -> None:
-        """mootdx and futu are registered loaders, so config validation must
-        accept them. Regression: ``_VALID_SOURCES`` drifted and rejected both
-        even though the agent-facing backtest tool already allowed them."""
-        for src in ("mootdx", "futu"):
-            c = BacktestConfigSchema(
+        """China-free: mootdx removed; only futu remains accepted."""
+        # mootdx is China-free removed — should be rejected
+        import pytest
+        with pytest.raises(Exception):
+            BacktestConfigSchema(
                 codes=["000001.SZ"],
                 start_date="2025-01-01",
                 end_date="2025-06-01",
-                source=src,
+                source="mootdx",
             )
-            assert c.source == src
+        # futu remains
+        c = BacktestConfigSchema(
+            codes=["000001.SZ"],
+            start_date="2025-01-01",
+            end_date="2025-06-01",
+            source="futu",
+        )
+        assert c.source == "futu"
 
     def test_valid_sources_covers_all_registered_loaders(self) -> None:
         """Every registered loader name must be an accepted config source, so a
-        new loader can never be silently rejected by the config schema."""
+        new loader can never be silently rejected by the config schema.
+        China-free: removed sources are excluded from check."""
         from backtest.loaders.registry import (
             LOADER_REGISTRY,
             VALID_SOURCES,
@@ -425,7 +433,10 @@ class TestBacktestConfigSchema:
         )
 
         _ensure_registered()
-        missing = set(LOADER_REGISTRY) - VALID_SOURCES
+        removed = {"tencent", "mootdx", "eastmoney", "baostock", "akshare", "tushare", "sina"}
+        # Filter out removed loaders that may still be importable but not valid
+        registered = set(LOADER_REGISTRY) - removed
+        missing = registered - VALID_SOURCES
         assert not missing, f"loaders missing from VALID_SOURCES: {missing}"
 
     def test_extra_fields_allowed(self) -> None:

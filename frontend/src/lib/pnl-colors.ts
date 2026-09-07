@@ -11,10 +11,13 @@ function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-function hslToHex(hsl: string): string {
-  if (!hsl) return "";
-  const [h, s, l] = hsl.split(/\s+/).map(parseFloat);
-  if (isNaN(h)) return "";
+function toHexColor(val: string): string {
+  if (!val) return "";
+  const trimmed = val.trim();
+  if (trimmed.startsWith("#")) return trimmed;
+  if (trimmed.startsWith("rgb")) return trimmed;
+  const [h, s, l] = trimmed.split(/\s+/).map(parseFloat);
+  if (isNaN(h)) return trimmed;
   const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
   const f = (n: number) => {
     const kk = (n + h / 30) % 12;
@@ -33,8 +36,8 @@ export interface PnlColors {
 export function getPnlColors(): PnlColors {
   const isDark = document.documentElement.classList.contains("dark");
   return {
-    profit: hslToHex(cssVar("--success")) || "#22c55e",
-    loss: hslToHex(cssVar("--danger")) || "#ef4444",
-    neutral: isDark ? "#292524" : "#F1E9DA",
+    profit: toHexColor(cssVar("--success")) || (isDark ? "#22C55E" : "#16A34A"),
+    loss: toHexColor(cssVar("--danger")) || (isDark ? "#EF4444" : "#DC2626"),
+    neutral: isDark ? "#1C1C1C" : "#F4EFE4",
   };
 }

@@ -251,6 +251,20 @@ async function errorFromResponse(res: Response): Promise<ApiError> {
     // ({status:"error", error} / {ok:false, error}) rather than detail/message.
     detail = body.detail || body.message || body.error || detail;
   } catch { /* ignore */ }
+  // FastAPI request-validation failures (422) return `detail` as an array of
+  // {loc, msg, type} objects — stringifying that raw would render
+  // "[object Object],...". Join the human-readable `msg` fields instead.
+  if (Array.isArray(detail)) {
+    detail = detail
+      .map((item: unknown) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "msg" in (item as Record<string, unknown>)) {
+          return String((item as Record<string, unknown>).msg);
+        }
+        return String(item);
+      })
+      .join("; ");
+  }
   if (res.status === 401 || res.status === 403) {
     detail = getAuthRequiredMessage();
   }

@@ -43,7 +43,12 @@ class SessionResponse(BaseModel):
 
 class SendMessageRequest(BaseModel):
     """Send chat message: natural-language strategy description."""
-    content: str = Field(..., description="Natural language strategy description", min_length=1, max_length=5000)
+    # No max_length: long research briefs (multi-thousand-char prompts) are a
+    # first-class input — the scheduled-research API (CreateScheduledRunRequest)
+    # and the CLI already accept unbounded prompts into the same
+    # SessionService.send_message pipeline, and the agent loop's compaction
+    # machinery bounds downstream context usage.
+    content: str = Field(..., description="Natural language strategy description", min_length=1)
 
 
 class MessageResponse(BaseModel):
@@ -61,7 +66,9 @@ class MessageResponse(BaseModel):
 class CreateGoalRequest(BaseModel):
     """Create or replace a finance research goal."""
 
-    objective: str = Field(..., min_length=1, max_length=5000)
+    # 100k cap: a full research brief (the same text sent as a chat message)
+    # is a valid objective; the old 5000 cap rejected exactly those briefs.
+    objective: str = Field(..., min_length=1, max_length=100_000)
     criteria: List[str] = Field(default_factory=list)
     ui_summary: str = ""
     protocol: str = "thesis_review"
@@ -76,7 +83,7 @@ class UpdateGoalRequest(BaseModel):
 
     goal_id: str = Field(..., min_length=1)
     expected_goal_id: str = Field(..., min_length=1)
-    objective: Optional[str] = Field(None, min_length=1, max_length=5000)
+    objective: Optional[str] = Field(None, min_length=1, max_length=100_000)
     ui_summary: Optional[str] = Field(None, max_length=500)
 
 

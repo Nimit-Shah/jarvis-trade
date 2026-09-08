@@ -155,4 +155,31 @@ describe("api request helper", () => {
       message: "Add an API key in Settings.",
     } satisfies Partial<ApiError>);
   });
+
+  it("renders FastAPI 422 validation arrays as readable messages", async () => {
+    // FastAPI request-validation failures return `detail` as an array of
+    // {loc, msg, type} objects. Stringifying that raw rendered
+    // "[object Object],..." — the msg fields must be joined instead.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            detail: [
+              { type: "string_too_short", loc: ["body", "content"], msg: "String should have at least 1 character", input: "" },
+              { type: "missing", loc: ["body", "content"], msg: "Field required" },
+            ],
+          }),
+          { status: 422, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+
+    const { api } = await loadApiModule();
+
+    await expect(api.sendMessage("abcdef012345", "")).rejects.toMatchObject({
+      status: 422,
+      message: "String should have at least 1 character; Field required",
+    } satisfies Partial<ApiError>);
+  });
 });

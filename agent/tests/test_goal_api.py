@@ -49,6 +49,34 @@ def test_api_goal_uses_full_default_research_checklist(tmp_path: Path, monkeypat
     ]
 
 
+def test_api_goal_accepts_objective_longer_than_old_5000_cap(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A full research brief (>5000 chars, the old cap) is a valid objective.
+
+    The goal store strips leading/trailing whitespace (normalize_required_text),
+    so the expected value is the stripped brief — content must survive intact.
+    """
+    client = _client(tmp_path, monkeypatch)
+    sid = _session_id(client)
+    long_objective = (
+        "Build a systematic framework for identifying high-momentum Indian "
+        "stocks with IC-weighted factor synthesis. " * 120
+    )
+    assert len(long_objective) > 5000
+    expected = long_objective.strip()
+
+    response = client.post(f"/sessions/{sid}/goal", json={"objective": long_objective})
+
+    assert response.status_code == 201, response.text
+    assert response.json()["goal"]["objective"] == expected
+
+    # The long objective must survive a read-back too.
+    fetched = client.get(f"/sessions/{sid}/goal")
+    assert fetched.status_code == 200
+    assert fetched.json()["goal"]["objective"] == expected
+
+
 def test_api_can_complete_goal_with_verified_evidence(tmp_path: Path, monkeypatch) -> None:
     client = _client(tmp_path, monkeypatch)
     sid = _session_id(client)
